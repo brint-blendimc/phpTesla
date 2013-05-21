@@ -8,7 +8,6 @@
 ****** Methods Available ******
 * Directory::create($directory, $perm = 0755, $recursive = true)	// Creates directory [Option: parent directories].
 * Directory::delete($directory, $recursive = true)					// Deletes directory [Option: contents too].
-* Directory::deleteContents($directory)								// Deletes the contents within a directory.
 * Directory::getFiles($directory, $foldersToo)						// Return all files [Option: folders too].
 * Directory::getFolders($directory)									// Return all folders in a directory.
 * Directory::setPermissions($directory, $perm = 0755)				// Set permissions on a directory.
@@ -22,7 +21,7 @@ abstract class Directory
 	*
 	****** How to call the method ******
 	* Directory::create("/path/to/directory");
-	* Directory::create("/path/to/directory", false);		// Won't create parent directories if they don't exist.
+	* Directory::create("/path/to/directory", 0755, false);		// Won't create parent directories if they don't exist.
 	* 
 	****** Parameters ******
 	* @string	$directory		The directory that you want to create.
@@ -109,11 +108,22 @@ abstract class Directory
 		{
 			$fileList = array();
 			
+			// Loop through all of the contents of the directory and add it to the list
 			while(($file = readdir($handle)) !== false)
 			{
 				if($file != "." && $file != "..")
 				{
-					array_push($fileList, $file);
+					// Add folders to the list if it was set that they should be included
+					if(is_dir($file) && ($foldersToo === true || $foldersToo === "only"))
+					{
+						array_push($fileList, $file);
+					}
+					
+					// Add the file to the list
+					elseif($foldersToo !== "only")
+					{
+						array_push($fileList, $file);
+					}
 				}
 			}
 			
@@ -125,4 +135,19 @@ abstract class Directory
 		return array();
 	}
 	
+	/****** Get Folders in a Directory ******
+	* This function scans a directory for any folders contained inside it, and returns them.
+	* 
+	****** How to call the method ******
+	* Directory::getFolders("/path/to/dir");
+	* 
+	****** Parameters ******
+	* @string	$directory		The directory that we want to retrieve folders from.
+	* 
+	* RETURNS <array>			Returns an array of the folders in a directory.
+	*/
+	public static function getFolders($directory)
+	{
+		return self::getFiles($directory, "only");
+	}
 }
