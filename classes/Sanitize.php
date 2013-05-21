@@ -27,6 +27,7 @@
 * Sanitize::number($userInput, $maxRange = 0);			// If 2nd parameter is a number, applies a max range
 * Sanitize::number($userInput, $minRange = 0, $maxRange = 0);	// Use this format for min and max range
 * 
+* Sanitize::directory($userInput)						// Sanitizes an allowable directory path (including slashes)
 * Sanitize::filepath($userInput);						// Sanitizes an allowable file path (including slashes)
 * Sanitize::filename($userInput);						// Sanitizes an allowable filename (with proper extensions)
 * Sanitize::email($userInput);							// Sanitizes a proper email
@@ -101,12 +102,12 @@ abstract class Sanitize
 		return self::word($valueToSanitize, $extraChars . "0123456789_");
 	}
 	
-	/****** Sanitize a Directory Path ******
-	* Sanitizes user input for an allowable directory path. Only letters, numbers, and underscores are allowed, as
-	* well as the forward slashes necessary to identify the path. Parent paths are rejected (forcing an absolute path
-	* from the directory you're in, and the extension for any filename can (and should) be enforced.
+	/****** Sanitize a File Path ******
+	* Sanitizes user input for an allowable file path. Only letters, numbers, and underscores are allowed, as well as
+	* the forward slashes necessary to identify the path. Parent paths are rejected (forcing an absolute path from
+	* the directory you're in, and the extension for any filename can (and should) be enforced.
 	*
-	* *NOTE* This is the not the safest way to protect a directory path when user input is involved. If you need to
+	* *NOTE* This is the not the safest way to protect a file path when user input is involved. If you need to
 	* allow a user to have control over folders, you should use a sanitization method on the folder name itself
 	* rather than allow directory slashes to be used. This method should only be used for administrative users that
 	* have a reason to access multiple custom directories.
@@ -139,6 +140,7 @@ abstract class Sanitize
 		}
 		
 		// Sanitize any improper characters out of the string
+		$valueToSanitize = trim($valueToSanitize);
 		$valueToSanitize = str_replace(array(" ", "-"), array("_", "_"), $valueToSanitize);
 		$valueToSanitize = self::word($valueToSanitize, "1234567890_/.");
 		
