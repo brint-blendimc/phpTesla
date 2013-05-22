@@ -72,6 +72,62 @@ class TestSanitize extends Testing
 		);
 	}
 	
+	public function safeword()
+	{
+		$param = array(
+			"abcDEF123_- .?<>",
+			"?"
+		);
+		
+		return $this->validate(
+			/* Class Being Tested */		"Sanitize"
+			/* Method Being Tested */,		"safeword"
+			/* Summary of Test */,			'Ensure the safeword sanitization method is working properly.'
+			
+			/* Expected Return Value */,	"abcDEF123_- .?"
+			/* Actual Return Value */,		Sanitize::safeword($param[0], $param[1])
+			
+			/* Parameter List */,			$param
+		);
+	}
+	
+	public function text()
+	{
+		$param = array(
+			"Hey!?	 {[-]} %500 = /Pasta\\#@"
+		);
+		
+		return $this->validate(
+			/* Class Being Tested */		"Sanitize"
+			/* Method Being Tested */,		"text"
+			/* Summary of Test */,			'Ensure the text sanitization method is working properly.'
+			
+			/* Expected Return Value */,	$param[0]
+			/* Actual Return Value */,		Sanitize::text($param[0])
+			
+			/* Parameter List */,			$param
+		);
+	}
+	
+	public function whitelist()
+	{
+		$param = array(
+			"asdf;lkj",
+			";kad"
+		);
+		
+		return $this->validate(
+			/* Class Being Tested */		"Sanitize"
+			/* Method Being Tested */,		"whitelist"
+			/* Summary of Test */,			'Ensure the base whitelist sanitization method is working properly.'
+			
+			/* Expected Return Value */,	"ad;k"
+			/* Actual Return Value */,		Sanitize::whitelist($param[0], $param[1])
+			
+			/* Parameter List */,			$param
+		);
+	}
+	
 	public function filepath()
 	{
 		$param = array(

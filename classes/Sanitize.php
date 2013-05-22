@@ -13,21 +13,31 @@
 * specific characters to the whitelist that aren't already included with the method's default whitelist.
 *
 * For example, the following methods would produce the following whitelists:
-* Sanitize::number($userInput);				// Whitelist: 0123456789
-* Sanitize::number($userInput, "abcdef");	// Whitelist: 0123456789abcdef
+* Sanitize::number($userInput);				// Whitelist allows: 0123456789
+* Sanitize::number($userInput, "abcdef");	// Whitelist allows: 0123456789abcdef
 * 
+****** In-Practice Examples ******
+* 1. User goes to the URL: page.php?myInput=YES;*!_123.01
+* 
+* $value = $_GET['myInput'];									// Returns "YES;*!_123.01"
+* $value = Sanitize::word($_GET['myInput']);					// Returns "YES"
+* $value = Sanitize::number($_GET['myInput']);					// Returns "12301"
+* $value = Sanitize::number($_GET['myInput'], "_.");			// Returns "_123.01"
+* $value = Sanitize::whitelist($_GET['myInput'], "ABCDE");		// Returns "E"
+*
 ****** Methods Available ******
+* Sanitize::whitelist($userInput, $charsAllowed);		// Whitelists the exact characters you provide.
+* 
 * Sanitize::word($userInput, $extraChars = "");			// Allows letters
 * Sanitize::variable($userInput, $extraChars = "");		// Allows letters, numbers, underscore
 * Sanitize::safeword($userInput, $extraChars = "");		// Allows letters, numbers, space, underscore, dash, period
-* Sanitize::string($userInput, $extraChars = "");		// Allows letters, numbers, common symbols
 * Sanitize::text($userInput, $extraChars = "");			// Allows letters, numbers, whitespace, puncutation, symbols
-*
+* 
 * Sanitize::number($userInput, $extraChars = "");		// Allows numbers
 * Sanitize::number($userInput, $maxRange = 0);			// If 2nd parameter is a number, applies a max range
 * Sanitize::number($userInput, $minRange = 0, $maxRange = 0);	// Use this format for min and max range
 * 
-* Sanitize::directory($userInput)						// Sanitizes an allowable directory path (including slashes)
+* Sanitize::directory($userInput);						// Sanitizes an allowable directory path (including slashes)
 * Sanitize::filepath($userInput);						// Sanitizes an allowable file path (including slashes)
 * Sanitize::filename($userInput);						// Sanitizes an allowable filename (with proper extensions)
 * Sanitize::email($userInput);							// Sanitizes a proper email
@@ -38,9 +48,83 @@
 
 abstract class Sanitize
 {
+	/****** Sanitize: Whitelist ******
+	* Sanitizes user input so that only the characters that you want to be present are allowed. It will not care about
+	* what position any of the characters are in - you can use regular expressions whenever that is required.
+	*
+	* If there are characters sanitized (i.e. characters that didn't belong were stripped from the input), this method
+	* will attempt to create a warning for the admins of a potential hack attempt.
+	* 
+	****** How to call the method ******
+	* $string = Sanitize::whitelist($string, "abcd");	// The string will only allow the characters: a, b, c, and d
+	* 
+	****** Parameters ******
+	* @string	$valueToSanitize	The value you're going to sanitize.
+	* @string	$charsAllowed		A list of specific characters to add to the whitelist.
+	* 
+	* RETURNS <string>				Returns a sanitized value (as an acceptably formatted word).
+	*/
+	public static function whitelist($valueToSanitize, $charsAllowed)
+	{
+		/****** Prepare Variables *****/
+		$originalString = $valueToSanitize;
+		$illegalChars = 0;
+		
+		// Cycle through each letter in the word to sanitize and check if there is a character that shouldn't be there.
+		for($i = 0;$i < strlen($valueToSanitize);$i++)
+		{
+			// If something shouldn't be there, strip it out.
+			if(strpos($charsAllowed, $valueToSanitize[$i]) === false)
+			{
+				$valueToSanitize = substr_replace($valueToSanitize, "", $i, 1);
+				$i--;
+				$illegalChars++;
+			}
+		}
+		
+		// Send a warning if the user input had to be sanitized
+		if($originalString != $valueToSanitize)
+		{
+			// If we've encountered a level 1 warning or higher, check if the characters used are likely dangerous
+			if($illegalChars >= 3)
+			{
+				// Increase the warning level if there is an abundance of illegal characters
+				$warningLevel = ($illegalChars >= 5 ? 1 : 0);
+				
+				// Prepare variables for testing the offending characters
+				$offensiveCount = 0;
+				$offensiveChars = "`\\/%()?&'\';<>=+-" . chr(0);
+				
+				// Every time a potentially dangerous character is identified, increase the chance of warning
+				for($i = 0;$i < strlen($originalString);$i++)
+				{
+					// If something shouldn't be there, strip it out.
+					if(strpos($offensiveChars, $originalString[$i]) === false && strpos($charsAllowed, $originalString[$i]) === false)
+					{
+						$offensiveCount++;
+					}
+				}
+				
+				// Increase the warning level if multiple dangerous characters are found
+				if($offensiveCount >= 2)
+				{
+					$warningLevel = 1;
+				}
+				elseif($offensiveCount >= 4)
+				{
+					$warningLevel = 2;
+				}
+			}
+			
+			// Prepare a warning of potential abuse
+			self::warnOfPotentialAttack($originalString, "Illegal Characters", (isset($warningLevel) ? $warningLevel : 0));
+		}
+		
+		return $valueToSanitize;
+	}
 	/****** Sanitize Word ******
 	* Sanitizes user input so that only letters are allowed. Capital letters and lower case letters are both allowed.
-	* If there are characters present that don't belong, it will alert the Security class to warn of potential hacks.
+	* If there are characters present that don't belong, it will attempt to warn of potential hacks.
 	* 
 	****** How to call the method ******
 	* $word = Sanitize::word($word);			// Allows letters
@@ -54,42 +138,16 @@ abstract class Sanitize
 	*/
 	public static function word($valueToSanitize, $extraChars = "")
 	{
-		/****** Prepare Variables *****/
-		$whitelist = "eariotnslcudpmhgbfywkvEARIOTNSLCUDPMHGBFYWKV" . $extraChars . "xzjqXZJQ";
-		$originalString = $valueToSanitize;
-		$illegalChars = 0;
-		
-		// Cycle through each letter in the word to sanitize and check if there is a character that shouldn't be there.
-		for($i = 0;$i < strlen($valueToSanitize);$i++)
-		{
-			// If something shouldn't be there, strip it out.
-			if(strpos($whitelist, $valueToSanitize[$i]) === false)
-			{
-				$valueToSanitize = substr_replace($valueToSanitize, "", $i, 1);
-				$i--;
-				$illegalChars++;
-			}
-		}
-		
-		// Send a warning if the user input had to be sanitized
-		if($originalString != $valueToSanitize)
-		{
-			// Set the warning level higher if there is an abundance of illegal characters
-			$warningLevel = ($illegalChars > 5 ? ($illegalChars > 10 ? 2 : 1) : 0);
-			
-			self::warnOfPotentialAttack($originalString, "Illegal Characters", $warningLevel);
-		}
-		
-		return $valueToSanitize;
+		return self::whitelist($valueToSanitize, "eariotnslcudpmhgbfywkvEARIOTNSLCUDPMHGBFYWKV" . $extraChars . "xzjqXZJQ");
 	}
 	
 	/****** Sanitize a Variable ******
 	* Sanitizes user input so that only letters, numbers, and underscores are allowed.
-	* If there are characters present that don't belong, it will alert the Security class to warn of potential hacks.
+	* If there are characters present that don't belong, it will attempt to warn of potential hacks.
 	* 
 	****** How to call the method ******
-	* $word = Sanitize::variable($variable);			// Allows letters, numbers, underscores
-	* $word = Sanitize::variable($variable, "#!");		// Allows letters, numbers, undescores, "#", and "!"
+	* $str = Sanitize::variable($variable);			// Allows letters, numbers, underscores
+	* $str = Sanitize::variable($variable, "#!");	// Allows letters, numbers, undescores, "#", and "!"
 	* 
 	****** Parameters ******
 	* @string	$valueToSanitize	The value you're going to sanitize.
@@ -99,14 +157,54 @@ abstract class Sanitize
 	*/
 	public static function variable($valueToSanitize, $extraChars = "")
 	{
-		return self::word($valueToSanitize, $extraChars . "0123456789_");
+		return self::whitelist($valueToSanitize, "eariotnslcudpmhgbfywkv0123456789_EARIOTNSLCUDPMHGBFYWKV" . $extraChars . "xzjqXZJQ");
+	}
+	
+	/****** Sanitize a "Safeword" ******
+	* Sanitizes user input so that only letters, numbers, spaces, underscores, dashes, and periods are allowed. A
+	* "safeword" is basically a title (like a page title) or simple header that's meant to be primarily text.
+	* 
+	* If there are characters present that don't belong, it will attempt to warn of potential hacks.
+	* 
+	****** How to call the method ******
+	* $str = Sanitize::safeword($valueToSanitize);			// Alphanumeric + " _-." is allowed.
+	* $str = Sanitize::safeword($valueToSanitize, ":!");	// Adds ":" and "!" to the allowed whitelist.
+	* 
+	****** Parameters ******
+	* @string	$valueToSanitize	The value you're going to sanitize.
+	* ?string	$extraChars			A list of specific characters to add to the whitelist.
+	* 
+	* RETURNS <string>				Returns a sanitized value (as an acceptably formatted variable).
+	*/
+	public static function safeword($valueToSanitize, $extraChars = "")
+	{
+		return self::whitelist($valueToSanitize, "eariotnslcudpmhgbfywkv0123456789_- .EARIOTNSLCUDPMHGBFYWKV" . $extraChars . "xzjqXZJQ");
+	}
+	
+	/****** Sanitize Text ******
+	* Sanitizes user input so that the text found in typical paragraphs can be used (including whitespace and symbols).
+	* If there are characters present that don't belong, it will attempt to warn of potential hacks.
+	* 
+	****** How to call the method ******
+	* $text = Sanitize::text($valueToSanitize);			// Common text formats and punctuation allowed.
+	* $text = Sanitize::text($valueToSanitize, "<>");	// Allows typical text / punctuation, plus "<" and ">"
+	* 
+	****** Parameters ******
+	* @string	$valueToSanitize	The text that you're going to sanitize.
+	* ?string	$extraChars			A list of specific characters to add to the whitelist.
+	* 
+	* RETURNS <string>				Returns a sanitized value (as an acceptably formatted variable).
+	*/
+	public static function text($valueToSanitize, $extraChars = "")
+	{
+		return self::safeword($valueToSanitize, ",;:'\"!?@#$%^&*()[]+=|-_{}\\/" . chr(9) . chr(10) . $extraChars);
 	}
 	
 	/****** Sanitize a File Path ******
 	* Sanitizes user input for an allowable file path. Only letters, numbers, and underscores are allowed, as well as
 	* the forward slashes necessary to identify the path. Parent paths are rejected (forcing an absolute path from
 	* the directory you're in, and the extension for any filename can (and should) be enforced.
-	*
+	* 
 	* *NOTE* This is the not the safest way to protect a file path when user input is involved. If you need to
 	* allow a user to have control over folders, you should use a sanitization method on the folder name itself
 	* rather than allow directory slashes to be used. This method should only be used for administrative users that
@@ -166,13 +264,14 @@ abstract class Sanitize
 			// Retrieve the last "." present and use that to identify the file extension
 			$dotPos = strrpos($valueToSanitize, ".");
 			
-			$getExtension = substr($valueToSanitize, $dotPos + 1);
+			$getExtension = substr($valueToSanitize, $dotPos);
 			
 			// If there are multiple file extensions allowed
 			if(is_array($fileExtensionsAllowed) === true)
 			{
 				// If the file extension isn't one of the allowed types, report a warning and end
-				if(!in_array($getExtension, $fileExtensionsAllowed))
+				// A second check is made in case the programmer added a "." to the extensions allowed list
+				if(!in_array($getExtension, $fileExtensionsAllowed) && !in_array(str_replace(".", "", $getExtension), $fileExtensionsAllowed))
 				{
 					self::warnOfPotentialAttack($valueToSanitize, "Illegal File Extension", 2);
 					return false;
