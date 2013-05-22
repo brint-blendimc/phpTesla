@@ -6,11 +6,11 @@
 * Note: You must sanitize any untrusted data through these methods yourself - this class does not sanitize anything.
 *
 ****** Methods Available ******
-* Directory::create($directory, $perm = 0755, $recursive = true)	// Creates directory [Option: parent directories].
-* Directory::delete($directory, $recursive = true)					// Deletes directory [Option: contents too].
-* Directory::getFiles($directory, $foldersToo)						// Return all files [Option: folders too].
-* Directory::getFolders($directory)									// Return all folders in a directory.
-* Directory::setPermissions($directory, $perm = 0755)				// Set permissions on a directory.
+* Directory::create($directory, $perm = 0755, $recursive = true)		// Creates directory [Opt: Parent directories].
+* Directory::delete($directory, $recursive = true)						// Deletes directory [Opt: Contents too].
+* Directory::getFiles($directory, $foldersToo)							// Return all files [Opt: Folders].
+* Directory::getFolders($directory)										// Return all folders in a directory.
+* Directory::setPermissions($directory, $perm = 0755, $rec = false)		// Set directory permissions [Opt: Contents].
 */
 
 abstract class Directory
@@ -149,5 +149,47 @@ abstract class Directory
 	public static function getFolders($directory)
 	{
 		return self::getFiles($directory, "only");
+	}
+	
+	/****** Set Permissions of a Directory ******
+	* This method sets the permission mode of a directory.
+	*
+	****** How to call the method ******
+	* Directory::setPermissions("/path/to/directory", 0755);		// Directory set to mode 0755
+	* Directory::setPermissions("/path/to/directory", 0755, true);	// Directory and all contents set to mode 0755
+	* 
+	****** Parameters ******
+	* @string	$directory			The directory to set permissions on.
+	* ?int		$permissionMode		The number used to set the permission mode. (i.e. 0755, 755)
+	* ?bool		$recursive			If TRUE, sets all contents inside to same permissions.
+	* 
+	* RETURNS <bool>			Returns TRUE on success, FALSE on failure.
+	*/
+	public static function setPermissions($directory, $permissionMode = 0755, $recursive = false)
+	{
+		/****** Recursive Permissions ******/
+		if($recursive == true && is_dir($directory))
+		{
+			$contents = self::getFiles($directory, true);
+			
+			foreach($contents as $content)
+			{
+				self::setPermissions($directory . '/' . $content, $permissionMode, true);
+			}
+		}
+		
+		// If we're not doing a recursive scan, make sure that we're only affecting a directory
+		elseif(!is_dir($directory))
+		{
+			return false;
+		}
+		
+		// Append a "0" to the integer to make it valid
+		if(is_numeric($permissionMode) && strlen($permissionMode) == 3)
+		{
+			$permissionMode = "0" . $permissionMode;
+		}
+		
+		return chmod($directory, $permissionMode);
 	}
 }
