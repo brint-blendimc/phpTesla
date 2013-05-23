@@ -4,24 +4,29 @@
 * This class provides methods for creating, deleting, moving, or otherwise working with directories in the file system.
 * 
 * Note: You must sanitize any untrusted data through these methods yourself - this class does not sanitize anything.
-*
+* 
 ****** Methods Available ******
-* Directory::create($directory, $perm = 0755, $recursive = true)		// Creates directory [Opt: Parent directories].
-* Directory::delete($directory, $recursive = true)						// Deletes directory [Opt: Contents too].
-* Directory::getFiles($directory, $foldersToo)							// Return all files [Opt: Folders].
-* Directory::getFolders($directory)										// Return all folders in a directory.
-* Directory::setPermissions($directory, $perm = 0755, $rec = false)		// Set directory permissions [Opt: Contents].
+* Dir::create($directory, $perm = 0755, $recursive = true)			// Creates directory [Opt: Parent directories].
+* Dir::delete($directory, $recursive = true)						// Deletes directory [Opt: Contents too].
+* Dir::getFiles($directory, $foldersToo)							// Return all files [Opt: Folders].
+* Dir::getFolders($directory)										// Return all folders in a directory.
+* 
+* Dir::setOwner($directory, $owner = "_default_", $rec = false)		// Sets the owner for the directory.
+* Dir::setGroup($directory, $owner = "_default_", $rec = false)		// Sets the group for the directory.
+* Dir::setPermissions($directory, $perm = 0755, $rec = false)		// Set directory permissions [Opt: Contents].
+* 
+* Dir::setAutoPermissions($directory, $perm = 0755);				// Auto-handling for directory & its contents.
 */
 
-abstract class Directory
+abstract class Dir
 {
 	/****** Create a Directory ******
 	* This method creates a directory in the file system. If the directory's parents do not exist, this will create
 	* them, unless the option to do so is turned off.
 	*
 	****** How to call the method ******
-	* Directory::create("/path/to/directory");
-	* Directory::create("/path/to/directory", 0755, false);		// Won't create parent directories if they don't exist.
+	* Dir::create("/path/to/directory");
+	* Dir::create("/path/to/directory", 0755, false);		// Won't create parent directories if they don't exist.
 	* 
 	****** Parameters ******
 	* @string	$directory		The directory that you want to create.
@@ -33,7 +38,7 @@ abstract class Directory
 	public static function create($directory, $perm = 0755, $recursive = true)
 	{
 		// If the directory already exists (or if the directory is empty), our job is finished
-		if(is_dir($directory) or $directory == "")
+		if(file_exists($directory) && is_dir($directory) or $directory == "")
 		{
 			return true;
 		}
@@ -48,8 +53,8 @@ abstract class Directory
 	* the method to run recursively and delete the directory and all contents contained therein.
 	* 
 	****** How to call the method ******
-	* Directory::delete("/path/to/directory");			// Deletes the directory and all contents.
-	* Directory::delete("/path/to/directory", false);	// Deletes the directory only if it's empty.
+	* Dir::delete("/path/to/directory");			// Deletes the directory and all contents.
+	* Dir::delete("/path/to/directory", false);	// Deletes the directory only if it's empty.
 	* 
 	****** Parameters ******
 	* @string	$directory		The directory that you want to create.
@@ -92,8 +97,8 @@ abstract class Directory
 	* This function scans a directory for any files contained inside, and returns them.
 	* 
 	****** How to call the method ******
-	* Directory::getFiles("/path/to/dir");			// Returns files.
-	* Directory::getFiles("/path/to/dir", true);	// Returns files and folders.
+	* Dir::getFiles("/path/to/dir");			// Returns files.
+	* Dir::getFiles("/path/to/dir", true);		// Returns files and folders.
 	* 
 	****** Parameters ******
 	* @string	$directory		The directory that we want to retrieve files from.
@@ -104,7 +109,7 @@ abstract class Directory
 	public static function getFiles($directory, $foldersToo = false)
 	{
 		// Open the directory and review any contents inside
-		if($handle = opendir($dir))
+		if($handle = opendir($directory))
 		{
 			$fileList = array();
 			
@@ -113,14 +118,16 @@ abstract class Directory
 			{
 				if($file != "." && $file != "..")
 				{
+					$fullPath = $directory . "/" . $file;
+					
 					// Add folders to the list if it was set that they should be included
-					if(is_dir($file) && ($foldersToo === true || $foldersToo === "only"))
+					if(is_dir($fullPath) && ($foldersToo === true || $foldersToo === "only"))
 					{
 						array_push($fileList, $file);
 					}
 					
 					// Add the file to the list
-					elseif($foldersToo !== "only")
+					elseif(!is_dir($fullPath) && $foldersToo !== "only")
 					{
 						array_push($fileList, $file);
 					}
@@ -139,7 +146,7 @@ abstract class Directory
 	* This function scans a directory for any folders contained inside it, and returns them.
 	* 
 	****** How to call the method ******
-	* Directory::getFolders("/path/to/dir");
+	* Dir::getFolders("/path/to/dir");
 	* 
 	****** Parameters ******
 	* @string	$directory		The directory that we want to retrieve folders from.
@@ -151,12 +158,96 @@ abstract class Directory
 		return self::getFiles($directory, "only");
 	}
 	
+	/****** Set Owner of a Directory ******
+	* This method sets the file owner of a directory.
+	*
+	****** How to call the method ******
+	* Dir::setOwner("/path/to/directory", "apache");			// Sets directory owner to "apache"
+	* Dir::setOwner("/path/to/directory/, "apache", true);	// Recursive directory, sets contents to "apache"
+	* 
+	****** Parameters ******
+	* @string	$directory		The directory to set permissions on.
+	* ?string	$owner			The name of the owner to set.
+	* ?bool		$recursive		If TRUE, sets all contents inside to same permissions.
+	* 
+	* RETURNS <bool>			Returns TRUE on success, FALSE on failure.
+	*/
+	public static function setOwner($directory, $owner = "_default_", $recursive = false)
+	{
+		/****** Recursive Permissions ******/
+		if($recursive == true && is_dir($directory))
+		{
+			$contents = self::getFiles($directory, true);
+			
+			foreach($contents as $content)
+			{
+				self::setOwner($directory . '/' . $content, $owner, true);
+			}
+		}
+		
+		// If the owner is set to "_default_", then set it to the name of the current user
+		if($owner == "_default_")
+		{
+			// Make sure it's possible to identify the current user - if not, end the function
+			if(!function_exists("exec"))
+			{
+				return false;
+			}
+			
+			$owner = exec("whoami");
+		}
+		
+		return chown($directory, $owner);
+	}
+	
+	/****** Set Group of a Directory ******
+	* This method sets the file group of a directory.
+	*
+	****** How to call the method ******
+	* Dir::setGroup("/path/to/directory", "apache");			// Sets directory group to "apache"
+	* Dir::setGroup("/path/to/directory/, "apache", true);	// Recursive directory, sets contents to "apache"
+	* 
+	****** Parameters ******
+	* @string	$directory		The directory to set permissions on.
+	* ?string	$group			The name of the group to set.
+	* ?bool		$recursive		If TRUE, sets all contents inside to same permissions.
+	* 
+	* RETURNS <bool>			Returns TRUE on success, FALSE on failure.
+	*/
+	public static function setGroup($directory, $group = "_default_", $recursive = false)
+	{
+		/****** Recursive Permissions ******/
+		if($recursive == true && is_dir($directory))
+		{
+			$contents = self::getFiles($directory, true);
+			
+			foreach($contents as $content)
+			{
+				self::setGroup($directory . '/' . $content, $group, true);
+			}
+		}
+		
+		// If the group is set to "_default_", then set it to the name of the current user
+		if($group == "_default_")
+		{
+			// Make sure it's possible to identify the current user - if not, end the function
+			if(!function_exists("exec"))
+			{
+				return false;
+			}
+			
+			$group = exec("whoami");
+		}
+		
+		return chgrp($directory, $group);
+	}
+	
 	/****** Set Permissions of a Directory ******
 	* This method sets the permission mode of a directory.
 	*
 	****** How to call the method ******
-	* Directory::setPermissions("/path/to/directory", 0755);		// Directory set to mode 0755
-	* Directory::setPermissions("/path/to/directory", 0755, true);	// Directory and all contents set to mode 0755
+	* Dir::setPermissions("/path/to/directory", 0755);		// Directory set to mode 0755
+	* Dir::setPermissions("/path/to/directory", 0755, true);	// Directory and all contents set to mode 0755
 	* 
 	****** Parameters ******
 	* @string	$directory			The directory to set permissions on.
@@ -176,12 +267,6 @@ abstract class Directory
 			{
 				self::setPermissions($directory . '/' . $content, $permissionMode, true);
 			}
-		}
-		
-		// If we're not doing a recursive scan, make sure that we're only affecting a directory
-		elseif(!is_dir($directory))
-		{
-			return false;
 		}
 		
 		// Append a "0" to the integer to make it valid
