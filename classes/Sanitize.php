@@ -69,15 +69,15 @@ abstract class Sanitize
 		/****** Prepare Variables *****/
 		$originalString = $valueToSanitize;
 		$illegalChars = 0;
+		$totalLength = strlen($valueToSanitize);
 		
 		// Cycle through each letter in the word to sanitize and check if there is a character that shouldn't be there.
-		for($i = 0;$i < strlen($valueToSanitize);$i++)
+		for($i = 0;$i < $totalLength;$i++)
 		{
 			// If something shouldn't be there, strip it out.
-			if(strpos($charsAllowed, $valueToSanitize[$i]) === false)
+			if(strpos($charsAllowed, $valueToSanitize[$i - $illegalChars]) === false)
 			{
-				$valueToSanitize = substr_replace($valueToSanitize, "", $i, 1);
-				$i--;
+				$valueToSanitize = substr_replace($valueToSanitize, "", $i - $illegalChars, 1);
 				$illegalChars++;
 			}
 		}
