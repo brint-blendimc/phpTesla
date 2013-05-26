@@ -1,4 +1,4 @@
-<?php if(!defined("IS_SAFE")) { die("No direct script access allowed."); }
+<?php if(!defined("ALLOW_SCRIPT")) { die("No direct script access allowed."); }
 
 /****** Directory Class ******
 * This class provides methods for creating, deleting, moving, or otherwise working with directories in the file system.

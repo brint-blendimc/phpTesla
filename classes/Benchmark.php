@@ -1,4 +1,5 @@
-<?php if(!defined("IS_SAFE") || !defined("DEVELOPMENT")) { die("Script access is not allowed in production mode."); }
+<?php	if(!defined("ALLOW_SCRIPT"))	{ die("No direct script access allowed."); }
+		if(PRODUCTION)					{ die("Script access is not allowed in production mode."); }
 
 /****** Benchmark Class ******
 * This class provides a simple set of functions for benchmarking a single function. You can design a specific function

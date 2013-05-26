@@ -1,4 +1,4 @@
-<?php if(!defined("IS_SAFE")) { die("No direct script access allowed."); }
+<?php if(!defined("ALLOW_SCRIPT")) { die("No direct script access allowed."); }
 
 /****** Security Class ******
 * This class provides methods for security handling, such as fingerprinting, password hashing, etc.

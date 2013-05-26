@@ -1,7 +1,6 @@
 <?php
 
-/****** Prepare Variables ******/
-define("IS_SAFE", true);			// Prepare the site-wide script-access variable.
+/****** Script Preparation ******/
+require_once("./config.php");
 
-/****** Script Includes ******/
-require_once("./includes/autoloader.php");
+echo "Page loaded properly.";

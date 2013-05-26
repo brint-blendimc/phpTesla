@@ -1,11 +1,7 @@
 <?php
 
-/****** Prepare Variables ******/
-define("IS_SAFE", true);			// Prepare the site-wide script-access variable.
-
-/****** Script Includes ******/
-require_once("./includes/autoloader.php");
-
+/****** Script Preparation ******/
+require_once("./config.php");
 
 
 // Determine the types of tests to run

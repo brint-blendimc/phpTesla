@@ -1,4 +1,4 @@
-<?php if(!defined("IS_SAFE")) { die("No direct script access allowed."); }
+<?php if(!defined("ALLOW_SCRIPT")) { die("No direct script access allowed."); }
 
 /****** Database Class ******
 * Allows the user to connect to the database, run queries, and interact with the Database.
@@ -12,6 +12,7 @@
 * $sql->selectMultiple($query, $prepArray)	// Returns multiple rows as an array of arrays.
 * $sql->selectValue($query, $prepArray)		// Returns a single value as a string.
 * 
+* $sql->query($query, $prepArray)			// Runs a standard query on the database.
 * $sql->insert($query, $prepArray)			// Runs an insertion query on the database.
 * $sql->update($query, $prepArray)			// Runs an update query on the database.
 * $sql->delete($query, $prepArray)			// Runs a deletion query on the database.
@@ -26,6 +27,7 @@
 * $sql->getTableList();						// Returns a list of the tables in the database.
 * $sql->tableExists($table)					// Checks if the table listed exists.
 * $sql->columnExists($table, $column)		// Checks if the column listed exists within the table.
+* $sql->showPermissions();					// Shows permissions (grants).
 */
 
 class Database

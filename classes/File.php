@@ -1,8 +1,8 @@
-<?php if(!defined("IS_SAFE")) { die("No direct script access allowed."); }
+<?php if(!defined("ALLOW_SCRIPT")) { die("No direct script access allowed."); }
 
 /****** File Class ******
 * This class provides methods for reading, writing, deleting, and otherwise working with files in the file system.
-*
+* 
 ****** Methods Available ******
 * File::read($filePath)									// Returns the contents of the file.
 * File::create($filePath, $text, $overwrite = false)	// Creates a new file with provided text. Can overwrite.

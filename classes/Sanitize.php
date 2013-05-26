@@ -1,4 +1,4 @@
-<?php if(!defined("IS_SAFE")) { die("No direct script access allowed."); }
+<?php if(!defined("ALLOW_SCRIPT")) { die("No direct script access allowed."); }
 
 /****** Sanitize Class ******
 * User input can never be trusted. The best way to ensure that user input is safe is to use a whitelisting technique,
