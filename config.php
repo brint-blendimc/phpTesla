@@ -18,7 +18,12 @@ define(
 
 // Set a Site-Wide Salt between 22 and 42 characters
 // NOTE: Only change this value ONCE after installing a new copy. It will affect all passwords created in the meantime.
-define("SALT", "Enter an appropriate salt value here.");
+define("SITE_SALT", "Enter an appropriate salt value here.");
+
+// Set a unique 4 to 10 character keycode (alphanumeric) to prevent code overlap on databases & shared servers
+// For example, you don't want sessions to transfer between multiple sites on a server (e.g. $_SESSION['user'])
+// This key will allow each value to be unique (e.g. $_SESSION['siteCode_user'] vs. $_SESSION['otherSite_user'])
+define("SITE_CODE", "siteCode");
 
 // Set the webmaster email
 define("WEBMASTER_EMAIL", "webmaster@thisdomain.com");
@@ -32,6 +37,7 @@ define("WEBMASTER_EMAIL", "webmaster@thisdomain.com");
 /****** Important Settings ******/
 define("ALLOW_SCRIPT", true);			// Allows included scripts to be accessed.
 
+define("USER_SESSION", SITE_CODE . '_user');	// Allows $_SESSION[USER_SESSION] to track each user.
 
 /****** Prepare the Environment Type ******/
 

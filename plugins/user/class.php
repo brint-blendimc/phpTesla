@@ -13,13 +13,14 @@ User::register("Joe", "myPassword", "joe@hotmail.com");		// Registers the user "
 User::login("Joe", "myPassword");							// Logs "Joe" in (if password is correct)
 
 ****** Methods Available ******
+* User::createUserTable()							// Creates the user table (this runs if it doesn't exist yet).
 * User::exists($username)							// Checks if the user exists.
 * User::register($username, $password, $email = "")	// Registers a user (email can be optional).
 * User::login($username, $password)					// Login as a user (sets session variable).
-* User::createUserTable()							// Creates the user table (this runs if it doesn't exist yet).
-* User::setPassword($user, $password)				// Sets a new password for the user.
-* User::getEmail($user)								// Returns the user's email.
-* User::setEmail($user, $email)						// Sets the user's email.
+* User::logout()									// Logs the current user out.
+* User::setPassword($username, $password)			// Sets a new password for the user.
+* User::setEmail($username, $email)					// Sets the user's email.
+* User::getData($username)							// Retrieves the information from the user (email, join date, etc).
 */
 
 abstract class User {
@@ -92,7 +93,7 @@ abstract class User {
 		return self::$sql->query("INSERT INTO `users` (`username`, `email`, `password`, `date_joined`) VALUES (?, ?, ?, ?)", array($username, $email, $hash, $dateJoined));
 	}
 
-/****** Log in as a User ******/
+/****** Log In as desired User ******/
 	public static function login
 	(
 		$username			/* <str> The username of the account. */,
@@ -108,11 +109,88 @@ abstract class User {
 		{
 			if($userData['password'] == Security::getPassword($password, $userData['password'], $userData['date_joined']))
 			{
+				// Prepare User Session
+				$_SESSION[USER_SESSION] = array(
+						"id"			=> $userData['id']
+					);
+				
+				// Update the last login time to right now:
+				self::$sql->query("UPDATE `users` SET date_lastLogin=? WHERE id=? LIMIT 1", array(time(), $userData['id']));
+				
 				return true;
 			}
 		}
 		
 		return false;
+	}
+	
+/****** Log Out ******/
+	public static function logout()
+		/* RETURNS <bool> : TRUE after removing all login sessions and cookies. */
+	
+	// User::logout()
+	{
+		unset($_SESSION[USER_SESSION]);
+		
+		return true;
+	}
+	
+/****** Set User Password ******/
+	public static function setPassword
+	(
+		$username			/* <str> The username of the account. */,
+		$password			/* <str> The password to set (will overwrite the existing password). */
+	)						/* RETURNS <bool> : TRUE if password was set, FALSE if something went wrong. */
+	
+	// User::setPassword("Joe", "myNewPassword")
+	{
+		$userData = self::$sql->selectOne("SELECT id, date_joined FROM users WHERE username=? LIMIT 1", array($username));
+		
+		if(isset($userData['id']))
+		{
+			$hash = Security::setPassword($password, $userData['date_joined']);
+			
+			return self::$sql->query("UPDATE `users` SET `password`=? WHERE id=? LIMIT 1", array($hash, $userData['id']));
+		}
+		
+		return false;
+	}
+	
+/****** Set User Email ******/
+	public static function setEmail
+	(
+		$username			/* <str> The username of the account. */,
+		$email				/* <str> The email to set (will overwrite the existing email). */
+	)						/* RETURNS <bool> : TRUE if email was set, FALSE if something went wrong. */
+	
+	// User::setEmail("Joe", "myNewEmail@gmail.com")
+	{
+		$userData = self::$sql->selectOne("SELECT id FROM users WHERE username=? LIMIT 1", array($username));
+		
+		if(isset($userData['id']))
+		{
+			return self::$sql->query("UPDATE `users` SET `email`=? WHERE id=? LIMIT 1", array($email, $userData['id']));
+		}
+		
+		return false;
+	}
+	
+/****** Get User Data ******/
+	public static function getData
+	(
+		$username			/* <str> The username of the account to retrieve. */
+	)						/* RETURNS <array> : User Data array if retrieve was successful, Empty array if not. */
+	
+	// User::getData("Joe")
+	{
+		$userData = self::$sql->selectOne("SELECT id, username, email, date_joined, date_lastLogin FROM users WHERE username=? LIMIT 1", array($username));
+		
+		if(isset($userData['id']))
+		{
+			return $userData;
+		}
+		
+		return array();
 	}
 }
 

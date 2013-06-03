@@ -63,9 +63,9 @@ abstract class Security
 			$password .= $args[$i];
 		}
 		
-		if(defined("SALT"))
+		if(defined("SITE_SALT"))
 		{
-			$password .= SALT;
+			$password .= SITE_SALT;
 		}
 		
 		/****** Create a randomized hash salt that will be saved with the final hash ******/
@@ -113,9 +113,9 @@ abstract class Security
 			$password .= $args[$i];
 		}
 		
-		if(defined("SALT"))
+		if(defined("SITE_SALT"))
 		{
-			$password .= SALT;
+			$password .= SITE_SALT;
 		}
 		
 		/****** Reuse the Algorithm Hash to solve the encryption ******/
