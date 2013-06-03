@@ -33,11 +33,15 @@
 class Database
 {
 	public $database = null;
+	public $databaseName = "";
 	public $rowsAffected = 0;
 	public $lastID = 0;
 	
 	function __construct($databaseName, $databaseUser, $databasePassword, $databaseType = 'mysql')
 	{
+		// Set Variables
+		$this->databaseName = $databaseName;
+		
 		// Attempt to connect to the database. If you fail, report the error.
 		try
 		{
@@ -137,4 +141,40 @@ class Database
 		return true;
 	}
 	
+/****** Check if a Table exists in the Database ******/
+	public function tableExists
+	(
+		$table			/* <str> The name of the table that you'd like to check if it exists.  */
+	)					/* Returns TRUE on success, FALSE on failure. */
+	
+	// $sql->tableExists("users");		// Checks if the table "users" exists or not
+	{
+		$checkExist = $this->selectOne("SELECT COUNT(*) as doesExist FROM information_schema.tables WHERE table_schema = ? AND table_name = ? LIMIT 1;", array($this->databaseName, $table));
+		
+		if($checkExist['doesExist'] == 0)
+		{
+			return false;
+		}
+		
+		return true;
+	}
+
+/****** Check if a Column exists within a Table ******/
+	public function columnExists
+	(
+		$table			/* <str> The name of the table that we're testing (to see if the column exists).  */,
+		$column			/* <str> The name of the column to check exists.  */
+	)					/* Returns TRUE on success, FALSE on failure. */
+	
+	// $sql->columnExists("users", "address");		// Checks if the column "address" exists in the table "users".
+	{
+		$checkExist = $this->selectOne("SELECT COUNT(*) as doesExist FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1;", array($this->databaseName, $table, $column));
+		
+		if($checkExist['doesExist'] == 0)
+		{
+			return false;
+		}
+		
+		return true;
+	}
 }
