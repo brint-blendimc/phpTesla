@@ -63,6 +63,11 @@ abstract class Security
 			$password .= $args[$i];
 		}
 		
+		if(defined("SALT"))
+		{
+			$password .= SALT;
+		}
+		
 		/****** Create a randomized hash salt that will be saved with the final hash ******/
 		
 		// BCrypt expects 128 bits of salt encoded in base 64.
@@ -103,9 +108,14 @@ abstract class Security
 		/****** Complicate the password by adding extra salts as desired ******/
 		$args = func_get_args();
 		
-		for($i = 1;$i < count($args);$i++)
+		for($i = 2;$i < count($args);$i++)
 		{
 			$password .= $args[$i];
+		}
+		
+		if(defined("SALT"))
+		{
+			$password .= SALT;
 		}
 		
 		/****** Reuse the Algorithm Hash to solve the encryption ******/

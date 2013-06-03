@@ -16,6 +16,10 @@ define(
 		//	"TESTING", true);			// Set this to check testing.
 		//	"PRODUCTION", true);		// Set this for live servers (where clients can view it).
 
+// Set a Site-Wide Salt between 22 and 42 characters
+// NOTE: Only change this value ONCE after installing a new copy. It will affect all passwords created in the meantime.
+define("SALT", "Enter an appropriate salt value here.");
+
 // Set the webmaster email
 define("WEBMASTER_EMAIL", "webmaster@thisdomain.com");
 
@@ -87,13 +91,32 @@ function autoLoader($class)
 	{
 		$classFile = realpath("./$dir/$class.php");
 		
-		if(file_exists($classFile))
+		if(is_file($classFile))
 		{
 			require_once($classFile);
 			return true;
 		}
 	}
 	
+	// Check if the class is a plugin
+	$pluginFile = realpath("./plugins/" . strtolower($class) . "/class.php");
+	
+	if(is_file($pluginFile))
+	{
+		require_once($pluginFile);
+		
+		// The plugin may require an initialization file:
+		$initFile = realpath("./plugins/" . strtolower($class) . "/initialize.php");
+		
+		if(is_file($initFile))
+		{
+			require_once($initFile);
+		}
+		
+		return true;
+	}
+	
+	// All checks failed. Return false.
 	return false;
 }
 

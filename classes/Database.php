@@ -109,6 +109,32 @@ class Database
 		return $multipleRows;
 	}
 	
+/****** Query the Database ******
+Queries the database and verifies success or failure. This can be used for inserts, deletes, creates, etc. */
+
+	public function query
+	(
+		$query			/* <str>	The SQL query command to run. */,
+		$prepArray		/* <array>	The values that correspond to the PDO ?'s in the query. */
+	)					/* RETURNS <bool> : TRUE on success, FALSE on failure. */
+	
+	// $sql->query("DELETE FROM table WHERE values >= ?", array(5));
+	{
+		// Run the query
+		$result = $this->database->prepare($query);
+		$result->execute($prepArray);
+		
+		// Retrieve the number of rows that were affected so that we can determine if this was a success or not.
+		$this->rowsAffected = $result->rowCount();
+		
+		if($this->rowsAffected > 0)
+		{
+			return true;
+		}
+		
+		return false;
+	}
+	
 	/****** Direct execution of SQL Query  ******
 	* Runs an SQL query directly as stated - accepts the query as fully trusted.
 	*
