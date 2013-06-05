@@ -27,17 +27,7 @@ abstract class User {
 
 /****** Prepare Variables ******/
 	public static $sql = null;
-
-/****** Initialize the User Plugin ******/
-	public static function initialize(
-	)	/* RETURNS <bool> : TRUE on success, FALSE on failure. */
 	
-	// User::initialize()
-	{
-		// Prepare the global database connection for use within this plugin:
-		global $sql;
-		self::$sql = $sql;
-	}
 
 /****** Create the User Table in the Database ******/
 	public static function createUserTable(
@@ -45,7 +35,7 @@ abstract class User {
 	
 	// User::createUserTable()
 	{
-		self::$sql->exec("
+		Database::exec("
 		CREATE TABLE IF NOT EXISTS `users` (
 			`id`					smallint(5)		UNSIGNED	NOT NULL	AUTO_INCREMENT,
 			`username`				varchar(22)					NOT NULL	DEFAULT '',
@@ -67,7 +57,7 @@ abstract class User {
 	
 	// User::exists("Joe")
 	{
-		$getUser = self::$sql->selectOne("SELECT id FROM users WHERE username=? LIMIT 1", array($username));
+		$getUser = Database::selectOne("SELECT id FROM users WHERE username=? LIMIT 1", array($username));
 		
 		if(isset($getUser['id']))
 		{
@@ -90,7 +80,7 @@ abstract class User {
 		$dateJoined = time();
 		$hash = Security::setPassword($password, $dateJoined);
 		
-		return self::$sql->query("INSERT INTO `users` (`username`, `email`, `password`, `date_joined`) VALUES (?, ?, ?, ?)", array($username, $email, $hash, $dateJoined));
+		return Database::query("INSERT INTO `users` (`username`, `email`, `password`, `date_joined`) VALUES (?, ?, ?, ?)", array($username, $email, $hash, $dateJoined));
 	}
 
 /****** Log In as desired User ******/
@@ -102,7 +92,7 @@ abstract class User {
 	
 	// User::login("Joe", "myPassword")
 	{
-		$userData = self::$sql->selectOne("SELECT id, username, password, date_joined FROM users WHERE username=? LIMIT 1", array($username));
+		$userData = Database::selectOne("SELECT id, username, password, date_joined FROM users WHERE username=? LIMIT 1", array($username));
 		
 		// If the user exists and the data was returned properly:
 		if(isset($userData['id']))
@@ -115,7 +105,7 @@ abstract class User {
 					);
 				
 				// Update the last login time to right now:
-				self::$sql->query("UPDATE `users` SET date_lastLogin=? WHERE id=? LIMIT 1", array(time(), $userData['id']));
+				Database::query("UPDATE `users` SET date_lastLogin=? WHERE id=? LIMIT 1", array(time(), $userData['id']));
 				
 				return true;
 			}
@@ -144,13 +134,13 @@ abstract class User {
 	
 	// User::setPassword("Joe", "myNewPassword")
 	{
-		$userData = self::$sql->selectOne("SELECT id, date_joined FROM users WHERE username=? LIMIT 1", array($username));
+		$userData = Database::selectOne("SELECT id, date_joined FROM users WHERE username=? LIMIT 1", array($username));
 		
 		if(isset($userData['id']))
 		{
 			$hash = Security::setPassword($password, $userData['date_joined']);
 			
-			return self::$sql->query("UPDATE `users` SET `password`=? WHERE id=? LIMIT 1", array($hash, $userData['id']));
+			return Database::query("UPDATE `users` SET `password`=? WHERE id=? LIMIT 1", array($hash, $userData['id']));
 		}
 		
 		return false;
@@ -165,11 +155,11 @@ abstract class User {
 	
 	// User::setEmail("Joe", "myNewEmail@gmail.com")
 	{
-		$userData = self::$sql->selectOne("SELECT id FROM users WHERE username=? LIMIT 1", array($username));
+		$userData = Database::selectOne("SELECT id FROM users WHERE username=? LIMIT 1", array($username));
 		
 		if(isset($userData['id']))
 		{
-			return self::$sql->query("UPDATE `users` SET `email`=? WHERE id=? LIMIT 1", array($email, $userData['id']));
+			return Database::query("UPDATE `users` SET `email`=? WHERE id=? LIMIT 1", array($email, $userData['id']));
 		}
 		
 		return false;
@@ -183,7 +173,7 @@ abstract class User {
 	
 	// User::getData("Joe")
 	{
-		$userData = self::$sql->selectOne("SELECT id, username, email, date_joined, date_lastLogin FROM users WHERE username=? LIMIT 1", array($username));
+		$userData = Database::selectOne("SELECT id, username, email, date_joined, date_lastLogin FROM users WHERE username=? LIMIT 1", array($username));
 		
 		if(isset($userData['id']))
 		{
