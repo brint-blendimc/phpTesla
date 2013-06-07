@@ -90,12 +90,19 @@ function autoLoader($class)
 		return false;
 	}
 	
-	// Cycle through all relevant directories and load the class (if found)
-	$directories = array("classes", "testing");
+	// Cycle through the class directory and load the class (if located)
+	$classFile = realpath("./classes/$class.php");
 	
-	foreach($directories as $dir)
+	if(is_file($classFile))
 	{
-		$classFile = realpath("./$dir/$class.php");
+		require_once($classFile);
+		return true;
+	}
+	
+	// If you're in development mode, check if testing classes were loaded;
+	if(DEVELOPMENT)
+	{
+		$classFile = realpath("./testing/$class.php");
 		
 		if(is_file($classFile))
 		{
