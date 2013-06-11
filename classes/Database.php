@@ -30,7 +30,7 @@
 * Database::showPermissions();					// Shows permissions (grants).
 */
 
-class Database {
+abstract class Database {
 
 /****** Prepare Variables ******/
 	public static $database = null;
