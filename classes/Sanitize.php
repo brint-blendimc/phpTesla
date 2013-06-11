@@ -175,7 +175,7 @@ before fully implementing it. Additional sanitization may likely be required. */
 	// $text = Sanitize::text($valueToSanitize);		// Common text formats and punctuation allowed.
 	// $text = Sanitize::text($valueToSanitize, "<>");	// Allows typical text / punctuation, plus "<" and ">"
 	{
-		return self::safeword($valueToSanitize, ",;:'\"!?@#$%^&*()[]+=|-_{}\\/" . chr(9) . chr(10) . $extraChars);
+		return self::safeword($valueToSanitize, ",;:'\"!?@#$%^&*()[]+=|{}\\/" . chr(9) . chr(10) . $extraChars);
 	}
 	
 	
