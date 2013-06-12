@@ -56,7 +56,7 @@ will attempt to create a warning for the admins of a potential hack attempt. */
 	public static function whitelist
 	(
 		$valueToSanitize		/* <str> The value you're going to sanitize. */,
-		$charsAllowed			/* <str> A list of specific characters to add to the whitelist. */,
+		$charsAllowed			/* <str> A list of specific characters to add to the whitelist. */
 	)							/* RETURNS <string> : Returns a sanitized value (as an acceptably formatted word). */
 	
 	// $string = Sanitize::whitelist($string, "abcd");	// The string will only allow the characters: a, b, c, and d
