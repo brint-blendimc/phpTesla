@@ -1,29 +1,29 @@
 <?php if(!defined("ALLOW_SCRIPT")) { die("No direct script access allowed."); }
 
-/****** Logging Class ******
-* This class will log any messages (or errors) that you want to track throughout the page. This is particularly helpful
-* for form validation, when error messages (or success messages) are very common.
+/****** Note Class ******
+* This class will track any messages (or errors) that you want to keep throughout the page. This is particularly
+* helpful for form validation, when error messages (or success messages) are very common.
 * 
 ****** In-Practice Examples ******
 * 
 * 
 ****** Methods Available ******
-* Log::error($errorMessage);				// Adds a new error to the error list.
-* Log::error($tagname, $errorMessage);		// Adds a new error with a specific tag name.
+* Note::error($errorMessage);				// Adds a new error to the error list.
+* Note::error($tagname, $errorMessage);		// Adds a new error with a specific tag name.
 * 
-* Log::message($message);					// Adds a new message to the message list.
-* Log::message($tagname, $message);			// Adds a new message with a specific tag name.
+* Note::message($message);					// Adds a new message to the message list.
+* Note::message($tagname, $message);			// Adds a new message with a specific tag name.
 * 
-* Log::hasErrors()				// Returns TRUE if there are errors, FALSE if not
+* Note::hasErrors()				// Returns TRUE if there are errors, FALSE if not
 * 
-* Log::getMessage($tagname)		// Returns a specific message (based on the tag name)
-* Log::getMessages()			// Returns the list of Messages (as an array)
+* Note::getMessage($tagname)		// Returns a specific message (based on the tag name)
+* Note::getMessages()			// Returns the list of Messages (as an array)
 * 
-* Log::getError($tagname)		// Returns a specific error (based on the tag name)
-* Log::getErrors()				// Returns the list of Errors (as an array)
+* Note::getError($tagname)		// Returns a specific error (based on the tag name)
+* Note::getErrors()				// Returns the list of Errors (as an array)
 */
 
-abstract class Log {
+abstract class Note {
 
 /****** Public Variables ******/
 	public static $errorList = array();
@@ -36,8 +36,8 @@ abstract class Log {
 		/* ?? <str> If two string arguments are provided, it adds the error to the error list with a tag name. */
 	)	/* RETURNS <bool> : TRUE on success, FALSE if something goes wrong. */
 	
-	// Log::error("Your password is too short.");	
-	// Log::error("No Username", "You need to add a username.");
+	// Note::error("Your password is too short.");	
+	// Note::error("No Username", "You need to add a username.");
 	{
 		$args = func_get_args();
 		
@@ -70,8 +70,8 @@ abstract class Log {
 		/* ?? <str> If two string arguments are provided, it adds the message to the list with a tag name. */
 	)	/* RETURNS <bool> : TRUE on success, FALSE if something goes wrong. */
 	
-	// Log::message("You have successfully logged in!");	
-	// Log::message("Password Updated", "You have updated your password!");
+	// Note::message("You have successfully logged in!");	
+	// Note::message("Password Updated", "You have updated your password!");
 	{
 		$args = func_get_args();
 		
@@ -101,7 +101,7 @@ abstract class Log {
 	public static function hasErrors (
 	)		/* RETURNS <bool> : TRUE if there are errors, FALSE if not. */
 	
-	// if(!Log::hasErrors()) { echo "The form has been submitted!"; }
+	// if(!Note::hasErrors()) { echo "The form has been submitted!"; }
 	{
 		if(self::$errorList == array())
 		{
@@ -118,7 +118,7 @@ abstract class Log {
 		$tagName		/* <str> The name of the message to retrieve. */
 	)					/* RETURNS <str> : Empty string if the message never occurred, otherwise the message. */
 	
-	// echo Log::getMessage('form_valid');
+	// echo Note::getMessage('form_valid');
 	{
 		if(isset(self::$messageList[$tagName]))
 		{
@@ -133,7 +133,7 @@ abstract class Log {
 	public static function getMessages (
 	)		/* RETURNS <array> : Array of all the errors that have been logged. */
 	
-	// $messages = Log::getMessages();
+	// $messages = Note::getMessages();
 	// foreach($messages as $message) {
 	// echo $message; }
 	{
@@ -147,7 +147,7 @@ abstract class Log {
 		$tagName		/* <str> The name of the error to retrieve. */
 	)					/* RETURNS <str> : Empty string if the error never occurred, otherwise the error. */
 	
-	// echo '<input type="text" name="username" /> ' . Log::getError('username_valid');
+	// echo '<input type="text" name="username" /> ' . Note::getError('username_valid');
 	{
 		if(isset(self::$errorList[$tagName]))
 		{
@@ -162,7 +162,7 @@ abstract class Log {
 	public static function getErrors (
 	)		/* RETURNS <array> : Array of all the errors that have been logged. */
 	
-	// $errors = Log::getMessages();
+	// $errors = Note::getMessages();
 	// foreach($errors as $error) {
 	// echo $error; }
 	{
