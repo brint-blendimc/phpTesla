@@ -111,24 +111,6 @@ function autoLoader($class)
 		}
 	}
 	
-	// Check if the class is a plugin
-	$pluginFile = realpath("./plugins/" . strtolower($class) . "/class.php");
-	
-	if(is_file($pluginFile))
-	{
-		require_once($pluginFile);
-		
-		// The plugin may require an initialization file:
-		$initFile = realpath("./plugins/" . strtolower($class) . "/initialize.php");
-		
-		if(is_file($initFile))
-		{
-			require_once($initFile);
-		}
-		
-		return true;
-	}
-	
 	// All checks failed. Return false.
 	return false;
 }

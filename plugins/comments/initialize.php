@@ -1,36 +1,33 @@
 <?php if(!defined("ALLOW_SCRIPT")) { die("No direct script access allowed."); }
 
-/****** Comment Class ******
+/****** Comment Plugin Class ******
 * This class allows you to post, edit, delete, retrieve, and interact with comments. These comments can be associated
 * with generic tags, enabling them to serve a multi-purpose function. By connecting with tags, they can work with
 * forums, discussion boards, blogs, or any other comment-based system.
 * 
-****** Dependencies ******
-* - "User" plugin
-* - "Database" class (for interacting with the users and clearance tables)
-* 
 ****** Methods Available ******
-* Comment::createTable()				// Creates the comment table.
-* 
-* Comment::getList($tag, $startPos, $numToLoad, $sortType = "ASC")		// Returns the list of comments.
-* 
-* Comment::create($tag, $username or $userID, $comment)			// Attaches comment to the referenced tag.
-* Comment::reply($commentID, $username or $userID, $comment)	// Attaches comment to parent comment.
-* Comment::edit($commentID, $comment)							// Edits the comment.
-* Comment::getOwner($commentID)									// Returns the username of the comment's owner.
-* 
-* Comment::delete($commentID)				// Deletes a single comment, and any replies.
-* Comment::deleteByTag($tag)				// Deletes all comments that belong to a particular tag.
+* $plugin->
+* 	comments->createTables()				// Creates the comment table.
+* 	
+* 	comments->getList($tag, $startPos, $numToLoad, $sortType = "ASC")		// Returns the list of comments.
+* 	
+* 	comments->create($tag, $username or $userID, $comment)			// Attaches comment to the referenced tag.
+* 	comments->reply($commentID, $username or $userID, $comment)		// Attaches comment to parent comment.
+* 	comments->edit($commentID, $comment)							// Edits the comment.
+* 	comments->getOwner($commentID)									// Returns the username of the comment's owner.
+* 	
+* 	comments->delete($commentID)			// Deletes a single comment, and any replies.
+* 	comments->deleteByTag($tag)				// Deletes all comments that belong to a particular tag.
 */
 
 
-abstract class Comment {
+abstract class CommentsPlugin {
 
 /****** Create Comment Table ******/
-	public static function createTable(
+	public static function createTables(
 	)					/* RETURNS <bool> : TRUE upon completion. */
 	
-	// Comment::createTable();
+	// $plugin->comments->createTables();
 	{
 		Database::exec("
 		CREATE TABLE IF NOT EXISTS `comments` (
@@ -59,7 +56,7 @@ abstract class Comment {
 		$includeReplies = true	/* <bool> Set to true if you want comment replies to be included with your result. */
 	)							/* RETURNS <array> : Returns array of comments (empty if none available). */
 	
-	// Comment::getList("blog-about-puppies", 0, 20);
+	// $plugin->comments->getList("blog-about-puppies", 0, 20);
 	{
 		$commentData = Database::selectMultiple("SELECT id, userID, comment, timestamp FROM comments WHERE tag=? ORDER BY " . ($sortType == "DESC" ?  "DESC" : "ASC") . " LIMIT " . ($startPos + 0) . ", " . ($numToLoad + 0), array($tag));
 		
@@ -75,7 +72,7 @@ abstract class Comment {
 		$comment		/* <str> The comment to post. */
 	)					/* RETURNS <bool> : TRUE if created properly, FALSE if something went wrong. */
 	
-	// Comment::create("blog-about-puppies", "Joe", "This is my comment! Huzzah!");
+	// $plugin->comments->create("blog-about-puppies", "Joe", "This is my comment! Huzzah!");
 	{
 		// Make sure the user exists and recover the user ID
 		$userData = Database::selectOne("SELECT id FROM users WHERE " . (is_int($user) ? "id" : "username") . "=? LIMIT 1", array($user);
@@ -98,7 +95,7 @@ abstract class Comment {
 		$comment			/* <str> The comment to post. */
 	)						/* RETURNS <bool> : TRUE if it replies properly, FALSE if something went wrong. */
 	
-	// Comment::reply(115, "Joe", "I am responding to your comment.");
+	// $plugin->comments->reply(115, "Joe", "I am responding to your comment.");
 	{
 		// Make sure the user exists and recover the user ID
 		$userData = Database::selectOne("SELECT id FROM users WHERE " . (is_int($user) ? "id" : "username") . "=? LIMIT 1", array($user);
@@ -128,7 +125,7 @@ abstract class Comment {
 		$comment			/* <str> The comment text that you'd like to post. */
 	)						/* RETURNS <bool> : TRUE if updated properly, FALSE if something went wrong. */
 	
-	// Comment::edit(140, "This is my updated comment!");
+	// $plugin->comments->edit(140, "This is my updated comment!");
 	{
 		return Database::query("UPDATE comments SET comment=? WHERE id=? LIMIT 1", array($comment, $commentID);
 	}
@@ -140,14 +137,14 @@ abstract class Comment {
 		$commentID			/* <str> The ID of the comment to delete. */
 	)						/* RETURNS <bool> : TRUE if deleted properly, FALSE if something went wrong. */
 	
-	// Comment::delete(140);
+	// $plugin->comments->delete(140);
 	{
 		// Delete any children of this comment (loop recursively through all children layers)
 		$children = Database::selectMultiple("SELECT id FROM comments WHERE parentID=?", array($commentID));
 		
 		foreach($children as $child)
 		{
-			Comment::delete($child['id']);
+			CommentsPlugin::delete($child['id']);
 		}
 		
 		return Database::query("DELETE FROM comments WHERE id=? LIMIT 1", array($commentID);
@@ -161,7 +158,7 @@ abstract class Comment {
 		$earlierThan = "now"	/* <int> If a timestamp is provided, it will only delete comments prior to that time. */
 	)							/* RETURNS <bool> : TRUE if comments deleted successfully, FALSE otherwise. */
 	
-	// Comment::deleteByTag('blog-about-puppies');
+	// $plugin->comments->deleteByTag('blog-about-puppies');
 	{
 		// Prepare the prune time
 		$pruneTime = (is_int($earlierThan) ? $earlierThan : time());
@@ -176,7 +173,7 @@ abstract class Comment {
 		
 		foreach($commentList as $comment)
 		{
-			Comment::delete($comment['id']);
+			CommentsPlugin::delete($comment['id']);
 		}
 		
 		return true;

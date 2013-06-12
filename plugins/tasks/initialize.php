@@ -41,10 +41,12 @@
 
 class TasksPlugin {
 
+
 /****** Important Values ******/
 	public $group = null;
 	public $project = null;
 
+	
 /****** Initializer ******/
 	function __construct()
 	{
@@ -55,6 +57,7 @@ class TasksPlugin {
 		$this->group = new TaskGroup();
 		$this->project = new TaskProject();
 	}
+	
 	
 /****** Create Task Table ******/
 	public static function createTables(
