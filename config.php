@@ -142,5 +142,11 @@ else
 	ini_set("display_errors", 0);
 }
 
+/****** Set up Configurations & Data ******/
+
+// This will automatically set up $data->url[]
+// Arguments passed from $_POST will be applied, such as $_POST['hello'] becoming $data->hello
+$data = new Data();
+
 /****** Prepare the Database Connection ******/
 Database::initialize($database['name'], $database['user'], $database['password'], $database['host'], $database['type']);
