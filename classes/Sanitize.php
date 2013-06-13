@@ -30,11 +30,14 @@
 * 
 * Sanitize::word($userInput, $extraChars = "");			// Allows letters
 * Sanitize::variable($userInput, $extraChars = "");		// Allows letters, numbers, underscore
-* Sanitize::safeword($userInput, $extraChars = "");		// Allows letters, numbers, space, underscore, dash, period
-* Sanitize::text($userInput, $extraChars = "");			// Allows letters, numbers, whitespace, puncutation, symbols
+* Sanitize::safeword($userInput, $extraChars = "");		// Allows letters, numbers, space, and _-.,:;|
+* Sanitize::punctuation($userInput, $extraChars = "");	// Allows safeword options, plus punctuation and some symbols
+* Sanitize::text($userInput, $extraChars = "");			// Allows punctuation options, plus brackets and extra symbols
 * 
 * Sanitize::number($userInput, $maxRange = 0);			// If 2nd parameter is a number, applies a max range
 * Sanitize::number($userInput, $minRange = 0, $maxRange = 0);	// Use this format for min and max range
+*
+* Sanitize::length($userInput, $maxLength);				// Strips content that's too long.
 * 
 * Sanitize::directory($userInput);						// Sanitizes an allowable directory path (including slashes)
 * Sanitize::filepath($userInput);						// Sanitizes an allowable file path (including slashes)
@@ -148,22 +151,38 @@ If there are characters present that don't belong, it will attempt to warn of po
 	}
 
 /****** Sanitize a "Safeword" ******
-Sanitizes user input so that only letters, numbers, spaces, underscores, dashes, and periods are allowed. A
-"safeword" is basically a title (like a page title) or simple header that's meant to be primarily text. */
+Sanitizes user input so that only letters, numbers, spaces, underscores, dashes, periods, and separators are allowed.
+A "safeword" is basically a title (like a page title) or simple header that's meant to be primarily text. */
 	public static function safeword
 	(
 		$valueToSanitize		/* <str> The value you're going to sanitize. */,
 		$extraChars = ""		/* <str> The list of specific characters to add to the whitelist. */
 	)							/* RETURNS <str> : The sanitized value that results after sanitizing. */
 	
-	// $str = Sanitize::safeword($valueToSanitize);			// Alphanumeric + " _-." is allowed.
-	// $str = Sanitize::safeword($valueToSanitize, ":!");	// Adds ":" and "!" to the allowed whitelist.
+	// $str = Sanitize::safeword($valueToSanitize);			// Alphanumeric + " _-.,:;|" is allowed.
+	// $str = Sanitize::safeword($valueToSanitize, "?!");	// Adds ":?" and "!" to the allowed whitelist.
 	{
-		return self::whitelist($valueToSanitize, "eariotnslcudpmhgbfywkv0123456789_- .EARIOTNSLCUDPMHGBFYWKV" . $extraChars . "xzjqXZJQ");
+		return self::whitelist($valueToSanitize, "eariotnslcudpmhgbfywkv0123456789_- .,:;|EARIOTNSLCUDPMHGBFYWKV" . $extraChars . "xzjqXZJQ");
 	}
 
+	
+/****** Sanitize Text with Limitations ******
+Sanitizes user input so that some text found in common paragraphs can be used (including whitespace and punctuation).
+Note: Consider what this is being used for before fully implementing it. Additional sanitization may be required. */
+	public static function punctuation
+	(
+		$valueToSanitize		/* <str> The value you're going to sanitize. */,
+		$extraChars = ""		/* <str> The list of specific characters to add to the whitelist. */
+	)							/* RETURNS <str> : The sanitized value that results after sanitizing. */
+	
+	// $text = Sanitize::text($valueToSanitize);		// Common text formats and punctuation allowed.
+	// $text = Sanitize::text($valueToSanitize, "<>");	// Allows typical text / punctuation, plus "<" and ">"
+	{
+		return self::safeword($valueToSanitize, "'\"!?@#$%^&*+=" . chr(9) . chr(10) . $extraChars);
+	}
+	
 /****** Sanitize Text ******
-Sanitizes user input so that the text found in typical paragraphs can be used (including whitespace and symbols).
+Sanitizes user input so that the text found in complicated paragraphs can be used (including whitespace and symbols).
 Note: this allows a considerable amount of symbols to be used - it's best to consider the ramifications of using this
 before fully implementing it. Additional sanitization may likely be required. */
 	public static function text
@@ -175,7 +194,7 @@ before fully implementing it. Additional sanitization may likely be required. */
 	// $text = Sanitize::text($valueToSanitize);		// Common text formats and punctuation allowed.
 	// $text = Sanitize::text($valueToSanitize, "<>");	// Allows typical text / punctuation, plus "<" and ">"
 	{
-		return self::safeword($valueToSanitize, ",;:'\"!?@#$%^&*()[]+=|{}\\/" . chr(9) . chr(10) . $extraChars);
+		return self::safeword($valueToSanitize, "'\"!?@#$%^&*()[]+={}" . chr(9) . chr(10) . $extraChars);
 	}
 	
 	
@@ -223,6 +242,20 @@ before fully implementing it. Additional sanitization may likely be required. */
 		
 		return $number;
 	}
+	
+	
+/****** Sanitize Length ******/
+	public static function length
+	(
+		$valueToShorten		/* <str> The number you're going to sanitize. */,
+		$maxLength			/* <int> The maximum length of the string; shorten if it exceeds this. */
+	)						/* RETURNS <str> : The sanitized value that results after sanitizing. */
+	
+	// $_POST['username'] = Sanitize::length($_POST['username'], 32);		// Limits the username to 32 characters.
+	{
+		return substr($valueToShorten, 0, $maxLength);
+	}
+
 	
 	/****** Sanitize a File Path ******
 	* Sanitizes user input for an allowable file path. Only letters, numbers, and underscores are allowed, as well as
