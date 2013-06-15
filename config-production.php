@@ -4,7 +4,7 @@
 * This file allows you to set important local configuration values.
 */
 
-// Set Important Paths
+// Set Important Paths (do not add an ending slash "/" at the end)
 define("BASE_DIR", "/var/www/html");
 define("BASE_URL", "http://somedomain.com");
 

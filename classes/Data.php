@@ -1,54 +1,25 @@
-<?php if(!defined("HIAB_SAFE")) { die("No direct script access allowed."); }
+<?php if(!defined("ALLOW_SCRIPT")) { die("No direct script access allowed."); }
 
 /****** Data Class ******
-* This class stores important information through the lifetime of the page. This includes the equivalent of the query
-* string (e.g. "site.com/urlSegment/2ndUrlSegment/etc") and the $_GET and $_POST values that are sent (though we will
-* try to avoid $_GET at all costs for SEO purposes).
+* This class stores the user input (the $_POST values) that get processed.
 * 
 ****** Common Uses of the Data Class ******
 * $data->{value}		// The $data class contains all of the $_POST values sent by the browser.
-* $data->url[] 			// Contains all of the URL segments that were used.
 * 
 ****** Methods Available ******
 * $data->getClientData()			// Puts all of the $_POST values retrieved into $data
-* $data->getURLSegments()			// Retrieves all of the URL segments and puts them in $data->url[]
+* $data->getURLSegments()			// Retrieves all URL Segments of the current address and returns them.
 * 
 */
 
 class Data {
 
-/****** Important Values ******/
-	public $storage = array();
-	
-/****** Initializer ******
+
+/****** Initialize ******
 When this class is instantiated, gather the client data ($_GET and $_POST) and set it. */
 	function __construct()
 	{
 		$this->getClientData();
-		$this->getURLSegments();
-	}
-	
-/****** Set Data Values Dynamically ******/
-	public function __set($name, $value)
-	{
-		$this->storage[$name] = $value;
-	}
-
-/****** Retrieve Data Values Dynamically ******/
-	public function __get($name)
-	{
-		if(isset($this->storage[$name]))
-		{
-			return $this->storage[$name];
-		}
-		
-		return false;
-	}
-
-/****** Check if Data Values Are Set ******/
-	public function __isset($name)
-	{
-		return isset($this->data[$name]);
 	}
 
 /****** Retrieve User Arguments ($_POST) ******/
@@ -59,19 +30,27 @@ When this class is instantiated, gather the client data ($_GET and $_POST) and s
 		{
 			foreach($_POST as $key => $value)
 			{
-				if($key == "url") { continue; }
-				
-				$this->storage[$key] = $value;
+				$this->$key = $value;
 			}
 		}
 		
 		return true;
 	}
 	
-/****** Set the URL Segments for this Page Load ******/
-	private function getURLSegments()
+/****** Return the URL Segments for this Page Load ******/
+	public static function getURLSegments(
+	)		/* RETURNS <array> : URL Segments of the web address provided (e.g. "domain.com/{segment1}/{segment2}"); */
+	
+	// $url = Data::getURLSegments();
 	{
-		$segments = explode("/", ltrim(rtrim($_SERVER['REQUEST_URI'], "/"), "/"));
+		// Strip out any query string data (if used)
+		$urlString = explode("?", $_SERVER['REQUEST_URI']);
+		
+		// Sanitize any unsafe characters from the URL
+		$urlString = Sanitize::variable($urlString[0], "-/");
+		
+		// Section the URL into multiple segments so that each can be added to the array individually
+		$segments = explode("/", ltrim(rtrim($urlString, "/"), "/"));
 		
 		// Strip away any unnecesasry URL Segments (such as localhost paths)
 		$defSegments = explode("/", rtrim(BASE_DIR, "/"));
@@ -90,9 +69,7 @@ When this class is instantiated, gather the client data ($_GET and $_POST) and s
 			}
 		}
 		
-		$this->storage['url'] = $segments;
-		
-		return true;
+		return $segments;
 	}
 }
 

@@ -28,7 +28,9 @@ define("SITE_CODE", "siteCode");
 // Set the webmaster email
 define("WEBMASTER_EMAIL", "webmaster@thisdomain.com");
 
-
+// Set the directory to your site relative to your BASE DIRECTORY.
+// Start with a "/", but do not end with one. (e.g. "/mySite" or "/sites/DogsInHats");
+$siteDirectory = "/sites/dashboard";
 
 /****************************************************
 ******* DO NOT CHANGE ANYTHING BELOW THIS LINE ******
@@ -51,8 +53,14 @@ if(!defined("PRODUCTION"))
 	define("PRODUCTION", (DEVELOPMENT ? false : true));
 }
 
+// If you are running on a production environment, load the production configurations
+if(PRODUCTION)
+{
+	require_once("./config-production.php");
+}
+
 // If you are using a localhost environment, make sure you're sufficiently protected against human error:
-if(DEVELOPMENT)
+else if(DEVELOPMENT)
 {
 	// If the "config-local.php" file doesn't exist, we're probably in a live server:
 	if(!is_file("./config-local.php"))
@@ -69,13 +77,6 @@ if(DEVELOPMENT)
 	// Load our local configuration settings
 	require_once("./config-local.php");
 }
-
-// If you are running on a production environment, load the production configurations
-if(PRODUCTION)
-{
-	require_once("./config-production.php");
-}
-
 
 /****** Prepare the Auto-Loader ******/
 spl_autoload_register(null, false);
@@ -147,6 +148,12 @@ else
 // This will automatically set up $data->url[]
 // Arguments passed from $_POST will be applied, such as $_POST['hello'] becoming $data->hello
 $data = new Data();
+
+
+/****** Additional Settings ******/
+define("SITE_DIR", BASE_DIR . $siteDirectory);
+
+$url = Data::getURLSegments();
 
 /****** Prepare the Database Connection ******/
 Database::initialize($database['name'], $database['user'], $database['password'], $database['host'], $database['type']);

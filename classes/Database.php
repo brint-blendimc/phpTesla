@@ -13,10 +13,6 @@
 * Database::selectValue($query, $prepArray)		// Returns a single value as a string.
 * 
 * Database::query($query, $prepArray)			// Runs a standard query on the database.
-* Database::insert($query, $prepArray)			// Runs an insertion query on the database.
-* Database::update($query, $prepArray)			// Runs an update query on the database.
-* Database::delete($query, $prepArray)			// Runs a deletion query on the database.
-* Database::create($query, $prepArray)			// Runs a creation query on the database.
 * Database::exec($query)						// Runs a static query (no preparation - must be trusted).
 * 
 * Database::beginTransaction()

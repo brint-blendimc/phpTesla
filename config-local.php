@@ -4,7 +4,7 @@
 * This file allows you to set important local configuration values.
 */
 
-// Set Important Paths
+// Set Important Paths (do not add an ending slash "/" at the end)
 define("BASE_DIR", "C:/wamp/www/phpTesla");
 define("BASE_URL", "http://127.0.0.1/phpTesla");
 

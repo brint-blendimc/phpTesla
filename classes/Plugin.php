@@ -5,11 +5,8 @@
 * 
 ****** In-Practice Examples ******
 * $plugin = new Plugin();
-* $plugin->tasks->method();
-* $plugin->tasks->group->method();
-* 
-****** Methods Available ******
-* Note::error($errorMessage);				// Adds a new error to the error list.
+* $plugin->tasks->method();				// Automatically builds the "tasks" plugin and calls method();
+* $plugin->tasks->group->method();		// Calls {TaskPlugin}->group->method()
 */
 
 class Plugin {
