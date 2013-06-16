@@ -149,6 +149,8 @@ else
 // Arguments passed from $_POST will be applied, such as $_POST['hello'] becoming $data->hello
 $data = new Data();
 
+// This handles all plugins and allows them to be created immediately when called
+$plugin = new Plugin();
 
 /****** Additional Settings ******/
 define("SITE_DIR", BASE_DIR . $siteDirectory);

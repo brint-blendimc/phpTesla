@@ -268,7 +268,7 @@ before fully implementing it. Additional sanitization may likely be required. */
 	* have a reason to access multiple custom directories.
 	*
 	* This function DOES NOT CARE if the file exists or not - it is simply trying to validate a proper directory and
-	* file path. If you want to test if the file exists, you'll want to use the FileHandler class.
+	* file path. If you want to test if the file exists, you'll want to use the File class.
 	* 
 	* If there are characters present that don't belong, it will alert the Security class to warn of potential hacks.
 	* Severe warnings may occur if the user attempts to enter parent paths ("../") or uses null bytes.
@@ -296,33 +296,33 @@ before fully implementing it. Additional sanitization may likely be required. */
 		
 		// Sanitize any improper characters out of the string
 		$valueToSanitize = trim($valueToSanitize);
-		$valueToSanitize = str_replace(array(" ", "-"), array("_", "_"), $valueToSanitize);
-		$valueToSanitize = self::word($valueToSanitize, "1234567890_/.");
+		$valueToSanitize = str_replace(array(" "), array("_"), $valueToSanitize);
+		$valueToSanitize = self::variable($valueToSanitize, ":/.-");
 
 		/****** Check For Severe Warnings ******/
-
+		
 		// If there is a parent path entry, this is definitely too suspicious to ignore
 		if(strpos($valueToSanitize, "../") > -1)
 		{
 			self::warnOfPotentialAttack($valueToSanitize, "Parent Path Injection", 3);
 			return false;
 		}
-
+		
 		// If there is a parent path entry without the slash, this is both broken and suspicious
 		elseif(strpos($valueToSanitize, "..") > -1)
 		{
 			self::warnOfPotentialAttack($valueToSanitize, "Invalid File Path", 2);
 			return false;
 		}
-
+		
 		/****** Verify the File Extension ******/
 		if($fileExtensionsAllowed !== "")
 		{
 			// Retrieve the last "." present and use that to identify the file extension
 			$dotPos = strrpos($valueToSanitize, ".");
-
+			
 			$getExtension = substr($valueToSanitize, $dotPos);
-
+			
 			// If there are multiple file extensions allowed
 			if(is_array($fileExtensionsAllowed) === true)
 			{
@@ -334,7 +334,7 @@ before fully implementing it. Additional sanitization may likely be required. */
 					return false;
 				}
 			}
-
+			
 			// If there is only one file extension allowed
 			else
 			{
@@ -346,7 +346,7 @@ before fully implementing it. Additional sanitization may likely be required. */
 				}
 			}
 		}
-
+		
 		return $valueToSanitize;
 	}
 	

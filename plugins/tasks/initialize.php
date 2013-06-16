@@ -10,15 +10,15 @@
 ****** Methods Available ******
 * $plugin->
 *	task->createTables()				// Creates the Task tables.
-* 
+* 	
 *	task->getListByGroup($groupID, $startPos, $numToLoad, $sortType = "ASC")	// Returns list of tasks by group.
 * 	task->getListByUser($userID, $startPos, $numToLoad, $sortType = "ASC")		// Returns list of tasks by user ID.
-* 
+* 	
 * 	task->orderTasksByImportance($taskList)		// Sorts a list of tasks by their relevance vs. priority & time due.
-* 
+* 	
 * 	task->exists($taskID)								// Checks if a task actually exists.
 * 	task->create($groupID, $assignedByID, $summary)		// Creates a task and sets the appropriate project and group.
-* 
+* 	
 * 	task->setUser($taskID, $userID)					// Sets the task's assigned user.
 * 	task->setSummary($taskID, $summary)				// Sets the task's summary.
 * 	task->setDescription($taskID, $description)		// Sets the task's description.
@@ -27,10 +27,10 @@
 * 	task->setTimeActual($taskID, $timeActual)		// Sets the task's actual time cost.
 * 	task->setTimeDue($taskID, $timeDue)				// Sets the task's due date.
 * 	task->setTimeFinished($taskID, $timeFinished)	// Sets the task's actual completion date.
-* 
+* 	
 * 	task->setComplete($taskID)						// Sets a task to complete.
 * 	task->setIncomplete($taskID)					// Sets a task to incomplete.
-* 
+* 	
 * 	task->delete($TaskID)				// Deletes a single task.
 */
 
@@ -43,8 +43,9 @@ class TasksPlugin {
 
 
 /****** Important Values ******/
-	public $group = null;
 	public $project = null;
+	public $group = null;
+	public $controller = null;
 
 	
 /****** Initializer ******/
@@ -53,9 +54,11 @@ class TasksPlugin {
 		// Extend all of the Task Classes
 		require_once(BASE_DIR . "/plugins/tasks/class_TaskGroup.php");
 		require_once(BASE_DIR . "/plugins/tasks/class_TaskProject.php");
+		require_once(BASE_DIR . "/plugins/tasks/class_TaskController.php");
 		
-		$this->group = new TaskGroup();
 		$this->project = new TaskProject();
+		$this->group = new TaskGroup();
+		$this->controller = new TaskController();
 	}
 	
 	

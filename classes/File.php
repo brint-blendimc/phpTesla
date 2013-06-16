@@ -4,6 +4,7 @@
 * This class provides methods for reading, writing, deleting, and otherwise working with files in the file system.
 * 
 ****** Methods Available ******
+* File::exists($filePath)								// Tests if the file exists (safe test / insertion).
 * File::read($filePath)									// Returns the contents of the file.
 * File::create($filePath, $text, $overwrite = false)	// Creates a new file with provided text. Can overwrite.
 * File::write($filePath, $text)							// Writes a file with the text provided. Will overwrite.
@@ -15,6 +16,31 @@
 
 abstract class File {
 
+
+/****** Check if File Path Exists (Safely) ******/
+	public static function exists
+	(
+		$filepath		/* <str> The full file path of the file to check. */
+	)					/* RETURNS <bool> : TRUE if the file safely exists, FALSE otherwise. */
+	
+	// File::exists("/path/to/file/myfile.php");
+	{
+		// If the filepath is using illegal characters or entries, reject the function
+		if(!isSanitized::filepath($filepath))
+		{
+			return false;
+		}
+		
+		// Return whether or not the file exists
+		if(file_exists($filepath) && !is_dir($filepath))
+		{
+			return true;
+		}
+		
+		return false;
+	}
+	
+	
 /****** Read File Contents ******/
 	public static function read
 	(

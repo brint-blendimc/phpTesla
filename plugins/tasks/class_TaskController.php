@@ -49,7 +49,7 @@ class TaskController {
 					}
 					
 					// Confirm that the Group Exists
-					elseif(TaskGroup::exists($_POST['groupID']) === false)
+					elseif(TaskGroup::exists($postData[$key]) === false)
 					{
 						Note::error("Task Group Doesn't Exist", "Task Group does not exist.");
 					}
@@ -66,9 +66,9 @@ class TaskController {
 					}
 					
 					// Confirm that the User Exists
-					if(User::exists($postData[$key]) === false)
+					if(UsersPlugin::exists($postData[$key]) === false)
 					{
-						// Error
+						Note::error("User Doesn't Exist", "User doesn't exist.");
 					}
 					
 				break;

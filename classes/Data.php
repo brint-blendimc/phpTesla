@@ -16,7 +16,7 @@ class Data {
 
 
 /****** Initialize ******
-When this class is instantiated, gather the client data ($_GET and $_POST) and set it. */
+When this class is instantiated, gather the client data ($_POST) and set it. */
 	function __construct()
 	{
 		$this->getClientData();
@@ -62,7 +62,7 @@ When this class is instantiated, gather the client data ($_GET and $_POST) and s
 			{
 				array_shift($segments);
 				
-				if($segments[$i] != $lastSegment)
+				if(!isset($segments[$i]) || $segments[$i] != $lastSegment)
 				{
 					break;
 				}

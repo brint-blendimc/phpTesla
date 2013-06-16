@@ -12,11 +12,28 @@
 * 	users->logout()										// Logs the current user out.
 * 	users->setPassword($username, $password)			// Sets a new password for the user.
 * 	users->setEmail($username, $email)					// Sets the user's email.
-* 	users->getData($username)							// Retrieves the info from the user (email, join date, etc).
+* 	users->getData($user)								// Retrieves the info from the user (email, join date, etc).
 */
 
-class UserPlugin {
+class UsersPlugin {
 
+
+/****** Important Values ******/
+	public $clearance = null;
+	public $controller = null;
+
+	
+/****** Initializer ******/
+	function __construct()
+	{
+		// Extend all of the Task Classes
+		require_once(BASE_DIR . "/plugins/users/class_UsersClearance.php");
+		require_once(BASE_DIR . "/plugins/users/class_UsersController.php");
+		
+		$this->clearance = new UsersClearance();
+		$this->controller = new UsersController();
+	}
+	
 	
 /****** Create the User Table in the Database ******/
 	public static function createTables(
@@ -56,6 +73,26 @@ class UserPlugin {
 		return false;
 	}
 
+	
+/****** Check if Email was Taken ******/
+	public static function emailExists
+	(
+		$email		/* <str> The email that you want to check exists. */
+	)				/* RETURNS <bool> : TRUE if the email is taken, FALSE if not. */
+	
+	// $plugin->users->emailExists("joe@hotmail.com")
+	{
+		$getEmail = Database::selectOne("SELECT id FROM users WHERE email=? LIMIT 1", array($email));
+		
+		if(isset($getEmail['id']))
+		{
+			return true;
+		}
+		
+		return false;
+	}
+	
+	
 /****** Register a User ******/
 	public static function register
 	(
@@ -157,12 +194,12 @@ class UserPlugin {
 /****** Get User Data ******/
 	public static function getData
 	(
-		$username			/* <str> The username of the account to retrieve. */
-	)						/* RETURNS <array> : User Data array if retrieve was successful, Empty array if not. */
+		$user			/* <str> The username or User ID of the account to retrieve. */
+	)					/* RETURNS <array> : User Data array if retrieve was successful, Empty array if not. */
 	
 	// $plugin->users->getData("Joe")
 	{
-		$userData = Database::selectOne("SELECT id, username, email, date_joined, date_lastLogin FROM users WHERE username=? LIMIT 1", array($username));
+		$userData = Database::selectOne("SELECT id, username, email, date_joined, date_lastLogin FROM users WHERE " . (is_numeric($user) ? 'id' : 'username') . "=? LIMIT 1", array($user));
 		
 		if(isset($userData['id']))
 		{

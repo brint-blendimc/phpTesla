@@ -16,7 +16,7 @@
 * 
 * Note::hasErrors()				// Returns TRUE if there are errors, FALSE if not
 * 
-* Note::getMessage($tagname)		// Returns a specific message (based on the tag name)
+* Note::getMessage($tagname)	// Returns a specific message (based on the tag name)
 * Note::getMessages()			// Returns the list of Messages (as an array)
 * 
 * Note::getError($tagname)		// Returns a specific error (based on the tag name)
@@ -32,7 +32,7 @@ abstract class Note {
 /****** Set Error ******/
 	public static function error
 	(
-		/* ?? <str> If only one string argument is provided, it adds the error to the error list with an integer. */,
+		/* ?? <str> If only one string argument is provided, it adds the error to the error list with an integer. */
 		/* ?? <str> If two string arguments are provided, it adds the error to the error list with a tag name. */
 	)	/* RETURNS <bool> : TRUE on success, FALSE if something goes wrong. */
 	
@@ -48,7 +48,7 @@ abstract class Note {
 		}
 		
 		// If two parameters were passed:
-		elseif(count($args == 2)
+		elseif(count($args == 2))
 		{
 			self::$errorList[$args[0]] = $args[1];
 		}
@@ -66,7 +66,7 @@ abstract class Note {
 /****** Set Message ******/
 	public static function message
 	(
-		/* ?? <str> If only one string argument is provided, it adds the message to the list with an integer. */,
+		/* ?? <str> If only one string argument is provided, it adds the message to the list with an integer. */
 		/* ?? <str> If two string arguments are provided, it adds the message to the list with a tag name. */
 	)	/* RETURNS <bool> : TRUE on success, FALSE if something goes wrong. */
 	
@@ -82,7 +82,7 @@ abstract class Note {
 		}
 		
 		// If two parameters were passed:
-		elseif(count($args == 2)
+		elseif(count($args == 2))
 		{
 			self::$messageList[$args[0]] = $args[1];
 		}
@@ -169,4 +169,51 @@ abstract class Note {
 		return self::$errorList;
 	}
 	
+	
+/****** Display Relevant Notes ******/
+	public static function display (
+	)		/* RETURNS <str> : HTML with divs that provide a simple display of relevant note data. */
+	
+	// Note::display()
+	{
+		$html = "";
+		
+		// If there are errors, display those:
+		if(self::$errorList != array())
+		{
+			$quickList = self::$errorList;
+			
+			$html = '
+			<div class="alert-box error-box">';
+			
+			foreach($quickList as $key => $note)
+			{
+				$html .= '
+				<div id="error' . $key . '" class="error">' . $note . '</div>';
+			}
+			
+			$html .= '
+			</div>';
+		}
+		
+		// If there are messages (but no errors), display those:
+		else if(self::$messageList != array())
+		{
+			$quickList = self::$messageList;
+			
+			$html = '
+			<div class="alert-box message-box">';
+			
+			foreach($quickList as $key => $note)
+			{
+				$html .= '
+				<div id="message' . $key . '" class="message">' . $note . '</div>';
+			}
+			
+			$html .= '
+			</div>';
+		}
+		
+		return $html;
+	}
 }
