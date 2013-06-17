@@ -72,7 +72,8 @@ class TasksPlugin {
 		CREATE TABLE IF NOT EXISTS `task_projects` (
 			`id`					int(11)			UNSIGNED	NOT NULL	AUTO_INCREMENT,
 			`title`					varchar(32)					NOT NULL	DEFAULT '',
-			PRIMARY KEY (`id`)
+			PRIMARY KEY (`id`),
+			UNIQUE (`title`)
 		) ENGINE=MyISAM  DEFAULT CHARSET=utf8 ;
 		");
 		

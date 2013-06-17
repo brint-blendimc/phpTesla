@@ -22,7 +22,7 @@ class UsersController {
 	// $plugin->users->controller->registerUser($data);
 	{
 		// Form Submission for Registering a User
-		if(isset($data->submit))
+		if(isset($data->submit) && isset($data->username) && isset($data->email) && isset($data->password))
 		{
 			// Validate Username
 			if(!isSanitized::variable($data->username, "-."))
@@ -33,6 +33,11 @@ class UsersController {
 			else if(!isSanitized::length($data->username, 22))
 			{
 				Note::error("Username", "Username can only be up to 22 characters.");
+			}
+			
+			else if(strlen($data->username) < 3)
+			{
+				Note::error("Username", "Username must be at least 3 characters long.");
 			}
 			
 			else if(is_numeric($data->username))
