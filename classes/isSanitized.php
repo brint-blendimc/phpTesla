@@ -46,8 +46,8 @@ abstract class isSanitized {
 /****** Sanitizes an Email String ******/
 	public static function email
 	(
-		$email
-	)
+		$email		/* <str> The email you're testing to see if it's sanitized. */
+	)				/* RETURNS <bool> : TRUE on success, FALSE on failure. */
 	
 	// if(!isSanitized::email("joe#hotmail.com")) { echo "Email is invalid!"; }
 	{
