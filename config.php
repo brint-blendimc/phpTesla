@@ -1,81 +1,60 @@
 <?php
 
-/****** Set Base Configuration Values ******
-* This file prepares certain site-wide configurations.
-* 
-****** Notes on "config-local.php" ******
-* You will need to set your personal configurations (for your localhost environment) in the config-local.php file.
-*
-****** Notes on "config-production.php" ******
-* You will need to set production configurations (for live sites) in the config-production.php file.
-*/
-
-// Choose Your Environment
-define(
-			"DEVELOPMENT", true);		// Set this if you're using a localhost environment.
-		//	"TESTING", true);			// Set this to check testing.
-		//	"PRODUCTION", true);		// Set this for live servers (where clients can view it).
-
-// Set a Site-Wide Salt between 22 and 42 characters
-// NOTE: Only change this value ONCE after installing a new copy. It will affect all passwords created in the meantime.
-define("SITE_SALT", "Enter an appropriate salt value here.");
-
-// Set a unique 4 to 10 character keycode (alphanumeric) to prevent code overlap on databases & shared servers
-// For example, you don't want sessions to transfer between multiple sites on a server (e.g. $_SESSION['user'])
-// This key will allow each value to be unique (e.g. $_SESSION['siteCode_user'] vs. $_SESSION['otherSite_user'])
-define("SITE_CODE", "siteCode");
-
-// Set the webmaster email
-define("WEBMASTER_EMAIL", "webmaster@thisdomain.com");
-
-// Set the directory to your site relative to your BASE DIRECTORY.
-// Start with a "/", but do not end with one. (e.g. "/mySite" or "/sites/DogsInHats");
-$siteDirectory = "/sites/dashboard";
-
-/****************************************************
-******* DO NOT CHANGE ANYTHING BELOW THIS LINE ******
-****************************************************/
+/***********************************************
+******* DO NOT EDIT ANYTHING IN THIS FILE ******
+***********************************************/
 
 /****** Important Settings ******/
-define("ALLOW_SCRIPT", true);			// Allows included scripts to be accessed.
-
 define("USER_SESSION", SITE_CODE . '_user');	// Allows $_SESSION[USER_SESSION] to track each user.
 
 /****** Prepare the Environment Type ******/
 
-// Make sure DEVELOPMENT, TESTING, and PRODUCTION are either set to true or false
+// Make sure LOCAL, DEVELOPMENT, PRODUCTION, and TESTING are either set to true or false
+if(!defined("LOCAL")) { define("LOCAL", false); }
 if(!defined("DEVELOPMENT")) { define("DEVELOPMENT", false); }
+if(!defined("PRODUCTION")) { define("PRODUCTION", false); }
 if(!defined("TESTING")) { define("TESTING", false); }
-
-// Set PRODUCTION to the opposite of DEVELOPMENT
-if(!defined("PRODUCTION"))
-{
-	define("PRODUCTION", (DEVELOPMENT ? false : true));
-}
 
 // If you are running on a production environment, load the production configurations
 if(PRODUCTION)
 {
-	require_once("./config-production.php");
+	require_once(SITE_DIR . "/config/environment-production.php");
 }
 
-// If you are using a localhost environment, make sure you're sufficiently protected against human error:
-else if(DEVELOPMENT)
+// If you are using a localhost environment, try to protect against human error:
+else if(LOCAL)
 {
-	// If the "config-local.php" file doesn't exist, we're probably in a live server:
-	if(!is_file("./config-local.php"))
+	// If "config/environment-local.php" doesn't exist, we're probably in a live server:
+	if(!is_file(SITE_DIR . "/config/environment-local.php"))
 	{
-		die("Conflict with development environment. \"config-local.php\" doesn't exist.");
+		die("Conflict with local environment. \"environment-local.php\" doesn't exist.");
 	}
 	
-	// If a programmer accidentally allowed the "DEVELOPMENT" environment on a live server, end the script.
+	// If a programmer accidentally allowed the "LOCAL" environment on a live server, end the script.
 	if(!in_array($_SERVER["SERVER_ADDR"], array("127.0.0.1", "::1")))
 	{
-		die("Conflict with localhost address. Development environment only accessible locally.");
+		die("Conflict with localhost address. Local environment only accessible locally.");
 	}
 	
 	// Load our local configuration settings
-	require_once("./config-local.php");
+	require_once(SITE_DIR . "/config/environment-local.php");
+}
+
+// If you are using a development environment, try to protect against human error:
+else if(DEVELOPMENT)
+{
+	// If "config/environment-development.php" doesn't exist, we're probably in a live server:
+	if(!is_file(SITE_DIR . "/config/environment-development.php"))
+	{
+		die("Conflict with development environment. \"environment-development.php\" doesn't exist.");
+	}
+	
+	// Load our development configuration settings
+	require_once(SITE_DIR . "/config/environment-development.php");
+}
+else
+{
+	die("You do not have an environment set.");
 }
 
 /****** Prepare the Auto-Loader ******/
@@ -92,7 +71,7 @@ function autoLoader($class)
 	}
 	
 	// Cycle through the class directory and load the class (if located)
-	$classFile = realpath("./classes/$class.php");
+	$classFile = realpath(BASE_DIR . "/classes/$class.php");
 	
 	if(is_file($classFile))
 	{
@@ -100,10 +79,19 @@ function autoLoader($class)
 		return true;
 	}
 	
-	// If you're in development mode, check if testing classes were loaded;
-	if(DEVELOPMENT)
+	// Cycle through site-specific classes if base classes were not detected
+	$classFile = realpath(SITE_DIR . "/classes/$class.php");
+	
+	if(is_file($classFile))
 	{
-		$classFile = realpath("./testing/$class.php");
+		require_once($classFile);
+		return true;
+	}
+	
+	// If you're in testing mode, check if testing classes were loaded;
+	if(TESTING)
+	{
+		$classFile = realpath(BASE_DIR . "/testing/$class.php");
 		
 		if(is_file($classFile))
 		{
@@ -128,7 +116,7 @@ define("WEBMASTER", (isset($_SESSION['webmaster']) ? true : false));
 
 
 /****** Set Error Handling ******/
-if(DEVELOPMENT or (TESTING && WEBMASTER))
+if(DEVELOPMENT or LOCAL or (TESTING && WEBMASTER))
 {
 	// Report all errors
 	error_reporting(E_ALL);
@@ -143,6 +131,11 @@ else
 	ini_set("display_errors", 0);
 }
 
+
+/****** Process Security Functions ******/
+Security::fingerprint();
+
+
 /****** Set up Configurations & Data ******/
 
 // This will automatically set up $data->url[]
@@ -152,9 +145,7 @@ $data = new Data();
 // This handles all plugins and allows them to be created immediately when called
 $plugin = new Plugin();
 
-/****** Additional Settings ******/
-define("SITE_DIR", BASE_DIR . $siteDirectory);
-
+// Get URL Segments
 $url = Data::getURLSegments();
 
 /****** Prepare the Database Connection ******/

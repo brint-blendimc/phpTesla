@@ -12,7 +12,7 @@
 * Note::error($tagname, $errorMessage);		// Adds a new error with a specific tag name.
 * 
 * Note::message($message);					// Adds a new message to the message list.
-* Note::message($tagname, $message);			// Adds a new message with a specific tag name.
+* Note::message($tagname, $message);		// Adds a new message with a specific tag name.
 * 
 * Note::hasErrors()				// Returns TRUE if there are errors, FALSE if not
 * 
@@ -21,6 +21,8 @@
 * 
 * Note::getError($tagname)		// Returns a specific error (based on the tag name)
 * Note::getErrors()				// Returns the list of Errors (as an array)
+*
+* Note::display()				// Displays the notes that were created during the script.
 */
 
 abstract class Note {
@@ -179,7 +181,7 @@ abstract class Note {
 		$html = "";
 		
 		// If there are errors, display those:
-		if(self::$errorList != array())
+		if(self::$errorList !== array())
 		{
 			$quickList = self::$errorList;
 			
@@ -197,7 +199,7 @@ abstract class Note {
 		}
 		
 		// If there are messages (but no errors), display those:
-		else if(self::$messageList != array())
+		else if(self::$messageList !== array())
 		{
 			$quickList = self::$messageList;
 			

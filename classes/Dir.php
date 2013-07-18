@@ -6,6 +6,7 @@
 * Note: You must sanitize any untrusted data through these methods yourself - this class does not sanitize anything.
 * 
 ****** Methods Available ******
+* Dir::exists($directory)											// Checks if the directory exists.
 * Dir::create($directory, $perm = 0755, $recursive = true)			// Creates directory [Opt: Parent directories].
 * Dir::delete($directory, $recursive = true)						// Deletes directory [Opt: Contents too].
 * Dir::getFiles($directory, $foldersToo)							// Return all files [Opt: Folders].
@@ -18,8 +19,33 @@
 * Dir::setAutoPermissions($directory, $perm = 0755);				// Auto-handling for directory & its contents.
 */
 
-abstract class Dir
-{
+abstract class Dir {
+
+
+/****** Check if Directory Exists (Safely) ******/
+	public static function exists
+	(
+		$filepath		/* <str> The full file path of the directory to check. */
+	)					/* RETURNS <bool> : TRUE if the directory safely exists, FALSE otherwise. */
+	
+	// Dir::exists("/path/to/file");
+	{
+		// If the filepath is using illegal characters or entries, reject the function
+		if(!isSanitized::filepath($filepath))
+		{
+			return false;
+		}
+		
+		// Return whether or not the file exists
+		if(is_dir($filepath))
+		{
+			return true;
+		}
+		
+		return false;
+	}
+	
+	
 	/****** Create a Directory ******
 	* This method creates a directory in the file system. If the directory's parents do not exist, this will create
 	* them, unless the option to do so is turned off.

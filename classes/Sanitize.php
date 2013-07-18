@@ -298,7 +298,7 @@ before fully implementing it. Additional sanitization may likely be required. */
 		$valueToSanitize = trim($valueToSanitize);
 		$valueToSanitize = str_replace(array(" "), array("_"), $valueToSanitize);
 		$valueToSanitize = self::variable($valueToSanitize, ":/.-");
-
+		
 		/****** Check For Severe Warnings ******/
 		
 		// If there is a parent path entry, this is definitely too suspicious to ignore

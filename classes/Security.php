@@ -6,6 +6,7 @@
 ****** Methods Available ******
 * Security::setPassword($password, <$extraSalts...>)		// Hashes a plaintext password into an encrypted one.
 * Security::getPassword($password, $hash, <$extraSalts...>)	// Hashes a plaintext password into an encrypted one.
+* Security::quickHash($token)								// Hases a quick token (not designed for passwords)
 * Security::fingerprintScan()								// Run this to help resist fake sessions.
 */
 
@@ -129,17 +130,30 @@ abstract class Security
 		return crypt($password, $passwordHash);
 	}
 	
+	
+/****** [[ Quick Hash ]] ******/
+	public static function quickHash
+	(
+		$token = ""			/* <str> The value to be hashed */
+	)						/* RETURNS <str> The hashed value. */
+	
+	// if(Security::quickHash($test) == "ec457d0a974c48d5685a7efa03d137dc8bbde7e3") { echo "Test Passed!"; }
+	{
+		return hash('sha512', $token);
+	}
+	
+	
 	/****** [[ Fingerprinting & Updating Sessions ]] ******
 	* Scans to see if the user agent's (session) fingerprint appears legitimate. If it does, continue normally.
 	* Otherwise, force a new session.
 	* 
 	****** How to call the method ******
-	* Security::fingerprintScan();
+	* Security::fingerprint();
 	* 
 	****** Parameters ******
 	* RETURNS <bool>			Returns TRUE after running the method, or FALSE if there isn't a session.
 	*/
-	public static function fingerprintScan()
+	public static function fingerprint()
 	{
 		// Return false if there is no session active
 		if(!isset($_SESSION))
@@ -174,4 +188,31 @@ abstract class Security
 		return true;
 	}
 	
+	
+/****** [[ CSRF Prevention ]] ******/
+	public static function csrf
+	(
+		$testValue = ""		/* <str> The hash value for that particular . */
+	)						/* RETURNS <str> The hashed CSRF Token. */
+	
+	// if(Security::csrf($_POST['csrfToken'])) { echo "Form successful!"; }
+	{
+		// Return false if there is no session active
+		if(!isset($_SESSION) || !defined("USER_SESSION"))
+		{
+			return false;
+		}
+		
+		// Prepare a session-based CSRF token if not present
+		// Note: if the user logs out (or times out), this will reset, causing existing pages to fail functionality.
+		if(!isset($_SESSION['csrfToken']))
+		{
+			$_SESSION['csrfToken'] = hash('sha256', rand(0, 9999999) . rand(0, 999999));
+		}
+		
+		// Return the CSRF Match Value
+		return self::quickHash(USER_SESSION . $_SESSION['csrfToken'] . $testValue);
+	}
 }
+
+
