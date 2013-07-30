@@ -33,7 +33,7 @@ abstract class Time {
 /****** Fuzzy Time (Future) - Private Helper ******/
 	private static function futureFuzzy
 	(
-		$secondsUntil		/* <int> The duration (in seconds) until the due date. */
+		$secondsUntil		/* <int> The duration (in seconds) until the due date. */,
 		$timestamp			/* <int> The time that the event is occuring. */
 	)						/* RETURNS <str> : Returns the fuzzy time (or a standard, formatted time). */
 	
@@ -135,7 +135,7 @@ abstract class Time {
 /****** Fuzzy Time (Past) - Private Helper ******/
 	private static function pastFuzzy
 	(
-		$secondsAgo			/* <int> The duration (in seconds) after the due date. */
+		$secondsAgo			/* <int> The duration (in seconds) after the due date. */,
 		$timestamp			/* <int> The time that the event occurred. */
 	)						/* RETURNS <str> : Returns the fuzzy time (or a standard, formatted time). */
 	

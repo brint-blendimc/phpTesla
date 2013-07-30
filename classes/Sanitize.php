@@ -38,6 +38,8 @@
 * Sanitize::number($userInput, $minRange = 0, $maxRange = 0);	// Use this format for min and max range
 *
 * Sanitize::length($userInput, $maxLength);				// Strips content that's too long.
+*
+* Sanitize::toURL($userInput)							// Changes a phrase to a URL-friendly path
 * 
 * Sanitize::directory($userInput);						// Sanitizes an allowable directory path (including slashes)
 * Sanitize::filepath($userInput);						// Sanitizes an allowable file path (including slashes)
@@ -256,6 +258,18 @@ before fully implementing it. Additional sanitization may likely be required. */
 		return substr($valueToShorten, 0, $maxLength);
 	}
 
+	
+/****** Change to a URL ******/
+	public static function toURL
+	(
+		$value				/* <str> The value you'd like to change. */
+	)						/* RETURNS <str> : The sanitized value that results after sanitizing. */
+	
+	// echo Sanitize::toFriendlyURL("The Best Blog Post");		// returns "the-best-blog-post"
+	{
+		return str_replace(" ", "-", strtolower(Sanitize::variable($value, "- ")));
+	}
+	
 	
 	/****** Sanitize a File Path ******
 	* Sanitizes user input for an allowable file path. Only letters, numbers, and underscores are allowed, as well as

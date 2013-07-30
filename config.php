@@ -79,8 +79,8 @@ function autoLoader($class)
 		return true;
 	}
 	
-	// Cycle through site-specific classes if base classes were not detected
-	$classFile = realpath(SITE_DIR . "/classes/$class.php");
+	// Cycle through site-specific plugins if base classes were not detected
+	$classFile = realpath(SITE_DIR . "/plugins/$class.php");
 	
 	if(is_file($classFile))
 	{
