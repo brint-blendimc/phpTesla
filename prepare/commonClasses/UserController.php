@@ -1,20 +1,20 @@
 <?php if(!defined("ALLOW_SCRIPT")) { die("No direct script access allowed."); }
-		
+
 /****** Users Controller Class ******
 * This class allows you to process common forms that relate to the 'users' data.
 * 
 ****** Methods Available ******
-* UserController::registerUser($data)
-* UserController::login($data)
+* UserController::registerUser()				// Register a User
+* UserController::login()						// Login
 */
 
-abstract class UserController {
-
-
+class UserController {
+	
+	
 /****** Register a New User *******/
 	public static function registerUser
 	(
-		$data					/* <class> The POST data that's sent to the form (pass via our $data value). */,
+		$data					/* <class> The POST data that's sent to the form. */,
 		$successRedirect = ""	/* <str> A page to redirect to on a successful registration. */,
 		$autoLogin = true		/* <bool> If TRUE, automatically logs you in on registration success. */
 	)							/* RETURNS <bool> or <redirect> : TRUE or REDIRECT on success, FALSE otherwise. */
@@ -67,29 +67,52 @@ abstract class UserController {
 				Note::error("Password", "Your password must be eight characters or more.");
 			}
 			
-			else if($data->password !== $data->confirm)
+			else if(isset($data->confirm) && $data->password !== $data->confirm)
 			{
 				Note::error("Password", "The password and confirmation don't match.");
+			}
+			
+			// Validate TOS
+			if(!isset($data->tos))
+			{
+				Note::error("Terms of Service", "You must agree to the Terms of Service");
 			}
 			
 			// If the form was valid, register the user
 			if(!Note::hasErrors())
 			{
-				User::register($data->username, $data->password, $data->email);
-				
-				// If you are automatically logging in after registration
-				if($autoLogin == true)
+				// Now to actually attempt registering the user
+				if(User::register($data->username, $data->password, $data->email))
 				{
-					User::login($data->username, $data->password);
+					// Get the User ID for details
+					$userID = Database::getLastID();
+					
+					// Add the Standard Newsletter Option (if applicable)
+					if(isset($data->newsletter))
+					{
+						Database::query("UPDATE users SET email_newsletter=? WHERE id=?", array(1, $userID));
+					}
+					
+					// Add the Goodies Newsletter Option (if applicable)
+					if(isset($data->goodies))
+					{
+						Database::query("UPDATE users SET email_goodies=? WHERE id=?", array(1, $userID));
+					}
+					
+					// If you are automatically logging in after registration
+					if($autoLogin == true)
+					{
+						User::login($data->username, $data->password);
+					}
+					
+					// If you are redirecting to a specific page on a successful registration
+					if($successRedirect !== "")
+					{
+						header("Location: " . $successRedirect); exit;
+					}
+					
+					return true;
 				}
-				
-				// If you are redirecting to a specific page on a successful registration
-				if($successRedirect !== "")
-				{
-					header("Location: " . $successRedirect); exit;
-				}
-				
-				return true;
 			}
 			
 			return false;
@@ -100,50 +123,51 @@ abstract class UserController {
 /****** Login *******/
 	public static function login
 	(
-		$data					/* <class> The POST data that's sent to the form (pass via our $data value). */,
+		$data					/* <class> The POST data that's sent to the form. */,
 		$successRedirect = ""	/* <str> The location to redirect to if you successfully login. */
 	)							/* RETURNS <bool> or <redirect> : TRUE or REDIRECT on success, FALSE otherwise. */
 	
-	// $plugin->users->controller->login($data);
+	// UserController::login($data);
 	{
 		// Form Submission for Logging In
-		if(isset($data->submit))
+		if(isset($data->submit) && isset($data->login) && isset($data->password))
 		{
-			// Validate Username
-			$data->username = Sanitize::variable($data->username, "-.");
+			$userLogin = $data->login;
 			
-			if(!isSanitized::length($data->username, 22))
+			// If logging in with an email (rather than a username)
+			if(strpos($userLogin, "@") > -1)
 			{
-				Note::error("Username", "Username can only be up to 22 characters.");
-			}
-			
-			else if(is_numeric($data->username))
-			{
-				Note::error("Username", "Username cannot be just a number.");
-			}
-			
-			// If the form was valid, attempt to log in
-			if(!Note::hasErrors())
-			{
-				if(!User::login($data->username, $data->password))
+				// User is logging in with an email, let's change it to ID
+				$userLogin = User::getData($userLogin, 'id');
+				
+				// If the user is invalid, let's stop here.
+				if($userLogin === false)
 				{
-					Note::error("Login", "Login was unsuccessful.");
+					return false;
 				}
 				
-				// If login was successful and you're redirecting to a specific page:
-				if(!Note::hasErrors())
+				// If we're still going, it means $userLogin is the array of user info. Change it to an ID.
+				$userLogin = $userLogin['id'];
+			}
+			
+			// Attempt to log in
+			if(User::login($userLogin, $data->password))
+			{
+				// If login was successful & you're redirecting to a specific page
+				if($successRedirect !== "")
 				{
-					if($successRedirect !== "")
-					{
-						header("Location: " . $successRedirect); exit;
-					}
+					header("Location: " . $successRedirect); exit;
 				}
 				
 				return true;
 			}
 			
+			// If login failed, provide an error message
+			Note::error("Login", "Login was unsuccessful.");
+			
 			return false;
 		}
 	}
+	
 }
 

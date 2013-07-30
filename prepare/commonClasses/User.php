@@ -1,7 +1,7 @@
 <?php if(!defined("ALLOW_SCRIPT")) { die("No direct script access allowed."); }
 
-/****** User Class ******
-* This handles the users, including registration, login, passwords, etc.
+/****** User Plugin Class ******
+* This plugin sets up and handles users, including registration, login, passwords, etc.
 * 
 ****** Methods Available ******
 * User::createTables()								// Creates the user table (this runs if it doesn't exist yet).
@@ -11,42 +11,47 @@
 * User::logout()									// Logs the current user out.
 * User::setPassword($username, $password)			// Sets a new password for the user.
 * User::setEmail($username, $email)					// Sets the user's email.
-* User::getData($user)								// Retrieves the info from the user (email, join date, etc).
+* User::getData($user, $tables = "*")				// Retrieves the info from the user by: ID, Username, or Email
+* 
+****** Database ******
+
+CREATE TABLE IF NOT EXISTS `users`
+(
+	`id`					smallint(5)		unsigned	NOT NULL	AUTO_INCREMENT,
+	
+	`role`					varchar(12)					NOT NULL	DEFAULT '',
+	`username`				varchar(22)					NOT NULL	DEFAULT '',
+	`email`					varchar(48)					NOT NULL	DEFAULT '',
+	`password`				varchar(60)					NOT NULL	DEFAULT '',
+	
+	`is_confirmed`			tinyint(1)		unsigned	NOT NULL	DEFAULT '',
+	
+	`email_newsletter`		tinyint(1)		unsigned	NOT NULL	DEFAULT '0',
+	`email_goodies`			tinyint(1)		unsigned	NOT NULL	DEFAULT '0',
+	
+	`date_joined`			int(11)			unsigned	NOT NULL	DEFAULT '0',
+	`date_lastLogin`		int(11)			unsigned	NOT NULL	DEFAULT '0',
+	
+	PRIMARY KEY (`id`),
+	UNIQUE (`username`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 ;
+
 */
 
 abstract class User {
-
-
-/****** Check if a User Exists ******/
+	
+	
+/****** Check if User Exists ******/
 	public static function exists
 	(
-		$username	/* <str> The username that you want to check exists. */
+		$user		/* <int> or <str> The ID or username of the user that you want to check exists. */
 	)				/* RETURNS <bool> : TRUE if the user exists, FALSE if not. */
 	
 	// User::exists("Joe")
 	{
-		$getUser = Database::selectOne("SELECT id FROM users WHERE username=? LIMIT 1", array($username));
+		$getUser = Database::selectOne("SELECT id FROM users WHERE `" . (is_numeric($user) ? "id" : "username") . "`=? LIMIT 1", array($user));
 		
 		if(isset($getUser['id']))
-		{
-			return true;
-		}
-		
-		return false;
-	}
-
-	
-/****** Check if Email was Taken ******/
-	public static function emailExists
-	(
-		$email		/* <str> The email that you want to check exists. */
-	)				/* RETURNS <bool> : TRUE if the email is taken, FALSE if not. */
-	
-	// User::emailExists("joe@hotmail.com")
-	{
-		$getEmail = Database::selectOne("SELECT id FROM users WHERE email=? LIMIT 1", array($email));
-		
-		if(isset($getEmail['id']))
 		{
 			return true;
 		}
@@ -60,7 +65,8 @@ abstract class User {
 	(
 		$username			/* <str> The username of the account. */,
 		$password			/* <str> The password you'd like to associate with your account. */,
-		$email = ""			/* <str> The email you want to register with. Leave empty for no email required. */
+		$email = ""			/* <str> The email you want to register with. Leave empty for no email required. */,
+		$role = "member"	/* <str> The role that the user is registering as. */
 	)						/* RETURNS <bool> : TRUE if user created, FALSE if not. */
 	
 	// User::register("Joe", "myPassword", "joe@hotmail.com")
@@ -68,19 +74,20 @@ abstract class User {
 		$dateJoined = time();
 		$hash = Security::setPassword($password, $dateJoined);
 		
-		return Database::query("INSERT INTO `users` (`username`, `email`, `password`, `date_joined`) VALUES (?, ?, ?, ?)", array($username, $email, $hash, $dateJoined));
+		return Database::query("INSERT INTO `users` (`username`, `email`, `password`, `role`, `date_joined`) VALUES (?, ?, ?, ?, ?)", array($username, $email, $hash, $role, $dateJoined));
 	}
-
-/****** Log In as desired User ******/
+	
+	
+/****** Log In as User ******/
 	public static function login
 	(
-		$username			/* <str> The username of the account. */,
+		$user				/* <int> or <str> The ID or username of the account. */,
 		$password			/* <str> The password used to login as the user. */
 	)						/* RETURNS <bool> : TRUE if login validation was successful, FALSE if not. */
 	
 	// User::login("Joe", "myPassword")
 	{
-		$userData = Database::selectOne("SELECT id, username, password, date_joined FROM users WHERE username=? LIMIT 1", array($username));
+		$userData = Database::selectOne("SELECT id, username, password, date_joined FROM users WHERE `" . (is_numeric($user) ? "id" : "username") . "`=? LIMIT 1", array($user));
 		
 		// If the user exists and the data was returned properly:
 		if(isset($userData['id']))
@@ -102,6 +109,7 @@ abstract class User {
 		return false;
 	}
 	
+	
 /****** Log Out ******/
 	public static function logout()
 		/* RETURNS <bool> : TRUE after removing all login sessions and cookies. */
@@ -113,16 +121,17 @@ abstract class User {
 		return true;
 	}
 	
+	
 /****** Set User Password ******/
 	public static function setPassword
 	(
-		$username			/* <str> The username of the account. */,
+		$user				/* <int> or <str> The ID or username of the account. */,
 		$password			/* <str> The password to set (will overwrite the existing password). */
 	)						/* RETURNS <bool> : TRUE if password was set, FALSE if something went wrong. */
 	
 	// User::setPassword("Joe", "myNewPassword")
 	{
-		$userData = Database::selectOne("SELECT id, date_joined FROM users WHERE username=? LIMIT 1", array($username));
+		$userData = Database::selectOne("SELECT id, date_joined FROM users WHERE `" . (is_numeric($user) ? "id" : "username") . "`=? LIMIT 1", array($user));
 		
 		if(isset($userData['id']))
 		{
@@ -134,16 +143,17 @@ abstract class User {
 		return false;
 	}
 	
+	
 /****** Set User Email ******/
 	public static function setEmail
 	(
-		$username			/* <str> The username of the account. */,
+		$user				/* <int> or <str> The ID or username of the account. */,
 		$email				/* <str> The email to set (will overwrite the existing email). */
 	)						/* RETURNS <bool> : TRUE if email was set, FALSE if something went wrong. */
 	
 	// User::setEmail("Joe", "myNewEmail@gmail.com")
 	{
-		$userData = Database::selectOne("SELECT id FROM users WHERE username=? LIMIT 1", array($username));
+		$userData = Database::selectOne("SELECT id FROM users WHERE username=? LIMIT 1", array($user));
 		
 		if(isset($userData['id']))
 		{
@@ -153,22 +163,21 @@ abstract class User {
 		return false;
 	}
 	
+	
 /****** Get User Data ******/
 	public static function getData
 	(
-		$user			/* <str> The username or User ID of the account to retrieve. */
-	)					/* RETURNS <array> : User Data array if retrieve was successful, Empty array if not. */
+		$user			/* <int> or <str> The ID, username, or email of the account to retrieve. */,
+		$tables = "*"	/* <str> The rows you'd like to retrieve. */
+	)					/* RETURNS <array> : User data array if retrieve was successful, FALSE on failure. */
 	
-	// User::getData("Joe")
+	// $userData = User::getData(5)
+	// $userData = User::getData("Joe")
+	// $userData = User::getData("joe@hotmail.com")
 	{
-		$userData = Database::selectOne("SELECT id, username, email, date_joined, date_lastLogin FROM users WHERE " . (is_numeric($user) ? 'id' : 'username') . "=? LIMIT 1", array($user));
-		
-		if(isset($userData['id']))
-		{
-			return $userData;
-		}
-		
-		return array();
+		return Database::selectOne("SELECT " . Sanitize::variable($tables, "`,") . " FROM users WHERE `" . (is_numeric($user) ? 'id' : (strpos($user, "@") > -1 ? 'email' : 'username')) . "`=? LIMIT 1", array($user));
 	}
+	
+	
 }
 
