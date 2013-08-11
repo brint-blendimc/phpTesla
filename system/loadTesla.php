@@ -5,6 +5,7 @@
 ***********************************************/
 
 /****** Important Settings ******/
+define("ALLOW_SCRIPT", true);					// Allows other files to be accessed once this script has run.
 define("USER_SESSION", SITE_CODE . '_user');	// Allows $_SESSION[USER_SESSION] to track each user.
 
 /****** Prepare the Environment Type ******/
@@ -18,14 +19,14 @@ if(!defined("TESTING")) { define("TESTING", false); }
 // If you are running on a production environment, load the production configurations
 if(PRODUCTION)
 {
-	require_once(SITE_DIR . "/config/environment-production.php");
+	require_once(APP_PATH . "/config/environment-production.php");
 }
 
 // If you are using a localhost environment, try to protect against human error:
 else if(LOCAL)
 {
 	// If "config/environment-local.php" doesn't exist, we're probably in a live server:
-	if(!is_file(SITE_DIR . "/config/environment-local.php"))
+	if(!is_file(APP_PATH . "/config/environment-local.php"))
 	{
 		die("Conflict with local environment. \"environment-local.php\" doesn't exist.");
 	}
@@ -37,20 +38,20 @@ else if(LOCAL)
 	}
 	
 	// Load our local configuration settings
-	require_once(SITE_DIR . "/config/environment-local.php");
+	require_once(APP_PATH . "/config/environment-local.php");
 }
 
 // If you are using a development environment, try to protect against human error:
 else if(DEVELOPMENT)
 {
 	// If "config/environment-development.php" doesn't exist, we're probably in a live server:
-	if(!is_file(SITE_DIR . "/config/environment-development.php"))
+	if(!is_file(APP_PATH . "/config/environment-development.php"))
 	{
 		die("Conflict with development environment. \"environment-development.php\" doesn't exist.");
 	}
 	
 	// Load our development configuration settings
-	require_once(SITE_DIR . "/config/environment-development.php");
+	require_once(APP_PATH . "/config/environment-development.php");
 }
 else
 {
@@ -71,7 +72,7 @@ function autoLoader($class)
 	}
 	
 	// Cycle through the class directory and load the class (if located)
-	$classFile = realpath(BASE_DIR . "/classes/$class.php");
+	$classFile = realpath(SYS_PATH . "/classes/$class.php");
 	
 	if(is_file($classFile))
 	{
@@ -80,7 +81,7 @@ function autoLoader($class)
 	}
 	
 	// Cycle through site-specific plugins if base classes were not detected
-	$classFile = realpath(SITE_DIR . "/plugins/$class.php");
+	$classFile = realpath(APP_PATH . "/plugins/$class.php");
 	
 	if(is_file($classFile))
 	{
@@ -91,7 +92,7 @@ function autoLoader($class)
 	// If you're in testing mode, check if testing classes were loaded;
 	if(TESTING)
 	{
-		$classFile = realpath(BASE_DIR . "/testing/$class.php");
+		$classFile = realpath(SYS_PATH . "/testing/$class.php");
 		
 		if(is_file($classFile))
 		{
@@ -141,9 +142,6 @@ Security::fingerprint();
 // This will automatically set up $data->url[]
 // Arguments passed from $_POST will be applied, such as $_POST['hello'] becoming $data->hello
 $data = new Data();
-
-// This handles all plugins and allows them to be created immediately when called
-$plugin = new Plugin();
 
 // Get URL Segments
 $url = Data::getURLSegments();

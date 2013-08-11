@@ -131,15 +131,47 @@ abstract class Security
 	}
 	
 	
-/****** [[ Quick Hash ]] ******/
+/****** Quick Hash ******/
 	public static function quickHash
 	(
 		$token = ""			/* <str> The value to be hashed */
+		/* ARGS */			/* <ARGS> Any additional arguments to be included in the hash */
 	)						/* RETURNS <str> The hashed value. */
 	
-	// if(Security::quickHash($test) == "ec457d0a974c48d5685a7efa03d137dc8bbde7e3") { echo "Test Passed!"; }
+	// if(Security::quickHash($test) == "HmJfcCdKDzJp3h9Ag2qyCf/AWN8V") { echo "Test Passed!"; }
 	{
-		return hash('sha512', $token);
+		/****** Complicate the hash by adding extra salts as desired ******/
+		$args = func_get_args();
+		
+		for($i = 1;$i < count($args);$i++)
+		{
+			$token .= $args[$i];
+		}
+		
+		// Return the Token
+		return substr(base64_encode(hash('sha512', $token, true)), 3, 28);
+	}
+	
+	
+/****** Strong Hash ******/
+	public static function strongHash
+	(
+		$token = ""			/* <str> The value to be hashed */
+		/* ARGS */			/* <ARGS> Any additional arguments to be included in the hash */
+	)						/* RETURNS <str> The hashed value. */
+	
+	// if(Security::strongHash($test) == "sdfve4ec457d0a974c48d5685ac2.....<so on>.....") { echo "Test Passed!"; }
+	{
+		/****** Complicate the hash by adding extra salts as desired ******/
+		$args = func_get_args();
+		
+		for($i = 1;$i < count($args);$i++)
+		{
+			$token .= $args[$i];
+		}
+		
+		// Return the Token
+		return substr(base64_encode(hash('sha512', $token, true)), 0, 86);
 	}
 	
 	
@@ -185,24 +217,6 @@ abstract class Security
 			$_SESSION['USER_AGENT'] = $_SERVER['HTTP_USER_AGENT'];
 		}
 		
-		return true;
-	}
-	
-	
-/****** [[ CSRF Prevention ]] ******/
-	public static function csrf
-	(
-		$testValue = ""		/* <str> The hash value for that particular . */
-	)						/* RETURNS <str> The hashed CSRF Token. */
-	
-	// if(Security::csrf($_POST['csrfToken'])) { echo "Form successful!"; }
-	{
-		// Return false if there is no session active
-		if(!isset($_SESSION) || !defined("USER_SESSION"))
-		{
-			return false;
-		}
-		
 		// Prepare a session-based CSRF token if not present
 		// Note: if the user logs out (or times out), this will reset, causing existing pages to fail functionality.
 		if(!isset($_SESSION['csrfToken']))
@@ -210,9 +224,9 @@ abstract class Security
 			$_SESSION['csrfToken'] = hash('sha256', rand(0, 9999999) . rand(0, 999999));
 		}
 		
-		// Return the CSRF Match Value
-		return self::quickHash(USER_SESSION . $_SESSION['csrfToken'] . $testValue);
+		return true;
 	}
+	
 }
 
 

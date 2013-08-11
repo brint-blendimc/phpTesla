@@ -311,7 +311,7 @@ before fully implementing it. Additional sanitization may likely be required. */
 		// Sanitize any improper characters out of the string
 		$valueToSanitize = trim($valueToSanitize);
 		$valueToSanitize = str_replace(array(" "), array("_"), $valueToSanitize);
-		$valueToSanitize = self::variable($valueToSanitize, ":/.-");
+		$valueToSanitize = self::variable($valueToSanitize, ":/.-\\");
 		
 		/****** Check For Severe Warnings ******/
 		

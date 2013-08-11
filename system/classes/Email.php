@@ -15,6 +15,7 @@ Email::send("someone@hotmail.com", "Super Important", "Dude, this is incredibly 
 
 abstract class Email {
 
+
 /****** Sends a Simple Email ******/
 	public static function send
 	(
@@ -27,6 +28,12 @@ abstract class Email {
 	
 	// Email::send(array("somebody@email.com"), "Greetings!", "This welcome message will make you feel welcome!")
 	{
+		// Localhost Versions, just edit email.html with the message
+		if(LOCAL)
+		{
+			return File::write(APP_PATH . "/email.html", $message);
+		}
+		
 		// Determine the Email being sent from
 		if($emailFrom == "")
 		{

@@ -4,9 +4,6 @@
 * This class will track any messages (or errors) that you want to keep throughout the page. This is particularly
 * helpful for form validation, when error messages (or success messages) are very common.
 * 
-****** In-Practice Examples ******
-* 
-* 
 ****** Methods Available ******
 * Note::error($errorMessage);				// Adds a new error to the error list.
 * Note::error($tagname, $errorMessage);		// Adds a new error with a specific tag name.
@@ -14,15 +11,15 @@
 * Note::message($message);					// Adds a new message to the message list.
 * Note::message($tagname, $message);		// Adds a new message with a specific tag name.
 * 
-* Note::hasErrors()				// Returns TRUE if there are errors, FALSE if not
+* Note::hasErrors()							// Returns TRUE if there are errors, FALSE if not
 * 
-* Note::getMessage($tagname)	// Returns a specific message (based on the tag name)
-* Note::getMessages()			// Returns the list of Messages (as an array)
+* Note::getMessage($tagname, $left = "", $right = "")	// Returns a specific message (based on the tag name)
+* Note::getMessages()									// Returns the list of Messages (as an array)
 * 
-* Note::getError($tagname)		// Returns a specific error (based on the tag name)
-* Note::getErrors()				// Returns the list of Errors (as an array)
-*
-* Note::display()				// Displays the notes that were created during the script.
+* Note::getError($tagname, $left = "", $right = "")		// Returns a specific error (based on the tag name)
+* Note::getErrors()										// Returns the list of Errors (as an array)
+* 
+* Note::display()							// Displays the notes that were created during the script.
 */
 
 abstract class Note {
@@ -105,26 +102,23 @@ abstract class Note {
 	
 	// if(!Note::hasErrors()) { echo "The form has been submitted!"; }
 	{
-		if(self::$errorList == array())
-		{
-			return false;
-		}
-		
-		return true;
+		return (self::$errorList == array() ? false : true);
 	}
 	
 	
 /****** Get a specific message, if present ******/
 	public static function getMessage
 	(
-		$tagName		/* <str> The name of the message to retrieve. */
-	)					/* RETURNS <str> : Empty string if the message never occurred, otherwise the message. */
+		$tagName			/* <str> The name of the message to retrieve. */,
+		$leftHTML = ""		/* <str> HTML you'd like to insert to the left of the message if it appears. */,
+		$rightHTML = ""		/* <str> HTML you'd like to insert to the right of the message if it appears. */
+	)						/* RETURNS <str> : Empty string if the message never occurred, otherwise the message. */
 	
 	// echo Note::getMessage('form_valid');
 	{
 		if(isset(self::$messageList[$tagName]))
 		{
-			return self::$messageList[$tagName];
+			return $leftHTML . self::$messageList[$tagName] . $rightHTML;
 		}
 		
 		return "";
@@ -146,14 +140,16 @@ abstract class Note {
 /****** Get a specific error, if present ******/
 	public static function getError
 	(
-		$tagName		/* <str> The name of the error to retrieve. */
-	)					/* RETURNS <str> : Empty string if the error never occurred, otherwise the error. */
+		$tagName			/* <str> The name of the error to retrieve. */,
+		$leftHTML = ""		/* <str> HTML you'd like to insert to the left of the message if it appears. */,
+		$rightHTML = ""		/* <str> HTML you'd like to insert to the right of the message if it appears. */
+	)						/* RETURNS <str> : Empty string if the error never occurred, otherwise the error. */
 	
 	// echo '<input type="text" name="username" /> ' . Note::getError('username_valid');
 	{
 		if(isset(self::$errorList[$tagName]))
 		{
-			return self::$errorList[$tagName];
+			return $leftHTML . self::$errorList[$tagName] . $rightHTML;
 		}
 		
 		return "";

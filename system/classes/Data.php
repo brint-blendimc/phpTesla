@@ -57,13 +57,13 @@ When this class is instantiated, gather the client data ($_GET and $_POST) and s
 		
 		// Sanitize any unsafe characters from the URL
 		$urlString = str_replace(" ", "-", $urlString[0]);
-		$urlString = Sanitize::variable($urlString, "_-/");
+		$urlString = Sanitize::variable($urlString, "_-/.");
 		
 		// Section the URL into multiple segments so that each can be added to the array individually
 		$segments = explode("/", ltrim(rtrim($urlString, "/"), "/"));
 		
 		// Strip away any unnecesasry URL Segments (such as localhost paths)
-		$defSegments = explode("/", rtrim(BASE_DIR, "/"));
+		$defSegments = explode("/", rtrim(SYS_PATH, "/"));
 		$lastSegment = $defSegments[count($defSegments) - 1];
 		
 		if(in_array($lastSegment, $segments))

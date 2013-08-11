@@ -1,4 +1,17 @@
 #################
+## Files
+#################
+
+starborn/*
+starborn/*/*
+sparklin/*
+sparklin/*/*
+presskit/*
+presskit/*/*
+materialicious/*
+materialicious/*/*
+
+#################
 ## Eclipse
 #################
 
