@@ -3,14 +3,23 @@
 /****** Image Class ******
 * This class provides several methods for manipulating images.
 * 
-* Note: The hue changing script was modified from an original script by Tatu Ulmanen on Stack Overflow.
-* 
+****** Example of Use ******
+
+$image = Image::create("./images/image.png");
+Image::trimTransparency($image);
+Image::crop($image, 10, 10, 80, 80);
+Image::changeHue($image, 45);
+Image::display($image);
+
 ****** Methods Available ******
 * Image::upload($path, $filename, $type, $size, $tmpFile, $permittedMIME);		// Uploads an image.
 * 
-* Image::createBase($width, $height);			// Returns empty alpha-png image that can be modified
-* Image::display(&$image);						// Displays the image directly to the screen
-* Image::swapColors(&$image, $swap)				// Switch colors on an image.
+* Image::create($image)							// Creates an image object.
+* Image::crop($image, $x, y, $toX, $toY)		// Crops an image based on the dimensions provided
+* Image::trimTransparency(&$image)				// Crops off any transparent edges
+* Image::rescale($image, $newWidth, $newHeight, $x, $y, $x2, $y2);		// Rescales the image.
+* Image::display(&$image)						// Displays the image directly to the screen
+* Image::swapColors(&$image, $swap)				// Switch colors on an image
 * Image::changeHue(&$image, $angle)				// Changes the hue of the image up to 360 degrees
 */
 
@@ -74,52 +83,16 @@ abstract class Image {
 		return true;
 	}
 	
-	
-/****** Crop Image ******/
-	public static function crop
+
+/****** Create Image Object from Path ******/
+	public static function create
 	(
-		$imagePath			/* <str> The path to the image. */
-	)						/* RETURNS <array> : Useful details, including position shifts. */
+		$imagePath		/* <str> The path of the image you'd like to create. */
+	)					/* RETURNS <image object>  */
 	
-	// list($posX, $posY, $width, $height) = Image::crop("/path/to/image.png");
+	// $image = Image::create("image.png");
 	{
-		// Get the width of the image
-		list($width, $height) = getimagesize($imagePath);
-		
-		// Get the image layer that we're building with
-		$layer = imagecreatefrompng($imagePath);
-		
-		$topMost = $height;
-		$bottomMost = 0;
-		$leftMost = $width;
-		$rightMost = 0;
-		
-		// Cycle through every pixel in the image
-		for($x = 0;$x < $width;$x++)
-		{
-			for($y = 0;$y < $height;$y++)
-			{
-				// Retrieve the color at the current location
-				$rgb = imagecolorat($layer, $x, $y);
-				
-				// Translate the colors to RGB values
-				$alpha = ($rgb & 0x7F000000) >> 24;
-				
-				if($alpha != 127)
-				{
-					// Set Horizontal Values (Crop)
-					if($x < $leftMost) { $leftMost = $x; }
-					if($x > $rightMost) { $rightMost = $x; }
-					
-					// Set Vertical Values (Crop)
-					if($y < $topMost) { $topMost = $y; }
-					if($y > $bottomMost) { $bottomMost = $y; }
-				}
-			}
-		}
-		
-		// Returns $posX, $posY, $width, $height
-		return array($leftMost, $topMost, $rightMost - $leftMost, $bottomMost - $topMost);
+		return imagecreatefrompng($imagePath);
 	}
 	
 
@@ -141,6 +114,196 @@ abstract class Image {
 	}
 	
 	
+/****** Crop Image ******/
+	public static function crop
+	(
+		&$image		/* <image object> The image object you want to crop. */,
+		$x			/* <int> The X position to start cropping at. */,
+		$y			/* <int> The Y position to start cropping at. */,
+		$toX		/* <int> The X position to stop cropping at. */,
+		$toY		/* <int> The Y position to stop cropping at. */
+	)				/* RETURNS <void> */
+	
+	// Image::crop($image, $x, $y, $toX, $toY);
+	{
+		// Cropped Dimensions
+		$cropWidth = abs($toX - $x);
+		$cropHeight = abs($toY - $y);
+		
+		// Crop the Image
+		$croppedImage = imagecreatetruecolor($cropWidth, $cropHeight);
+		$transColor = imagecolorallocatealpha($croppedImage, 0, 0, 0, 127);
+		imagefill($croppedImage, 0, 0, $transColor);
+		imagecopyresampled($croppedImage, $image, 0, 0, $x, $y, $cropWidth, $cropHeight, $cropWidth, $cropHeight);
+		
+		// Set the new cropped image
+		$image = $croppedImage;
+		
+		// Clear Memory
+		unset($croppedImage);
+	}
+	
+	
+/****** Crop Transparent Edges Image ******/
+	public static function trimTransparency
+	(
+		&$image		/* <image object> The image to crop. */
+	)				/* RETURNS <void> */
+	
+	// Image::trimTransparency($image);
+	{
+		// Get dimensions of the image
+		$width = imagesx($image);
+		$height = imagesy($image);
+		
+		list($leftMost, $rightMost, $topMost, $bottomMost) = self::findCropbox($image, 0, 0, $width - 1, $height - 1, 7);
+		
+		// If the inner crop-check rectangle didn't detect any spots, realign to make sense
+		if($leftMost > $rightMost) { $rightMost = $leftMost; }
+		if($topMost > $bottomMost) { $bottomMost = $topMost; }
+		
+		// Create the four boxes that you'll scan through
+		
+		// Scan Crop Boxes
+		if($leftMost > 0)
+		{
+			list($getLeft, $getRight, $getTop, $getBottom) = self::findCropbox($image, 0, 0, $leftMost, $height - 1, true);
+			
+			$leftMost = ($getLeft < $leftMost ? $getLeft : $leftMost);
+			$topMost = ($getTop < $topMost ? $getTop : $topMost);
+			$bottomMost = ($getBottom > $bottomMost ? $getBottom : $bottomMost);
+		}
+		
+		if($rightMost < $width - 1)
+		{
+			list($getLeft, $getRight, $getTop, $getBottom) = self::findCropbox($image, $rightMost, 0, $width - 1, $height - 1, true);
+			
+			$rightMost = ($getRight > $rightMost ? $getRight : $rightMost);
+			$topMost = ($getTop < $topMost ? $getTop : $topMost);
+			$bottomMost = ($getBottom > $bottomMost ? $getBottom : $bottomMost);
+		}
+		
+		if($topMost > 0)
+		{
+			list($getLeft, $getRight, $getTop, $getBottom) = self::findCropbox($image, $leftMost, 0, $rightMost, $topMost, true);
+			
+			$topMost = ($getTop < $topMost ? $getTop : $topMost);
+		}
+		
+		if($bottomMost < $height - 1)
+		{
+			list($getLeft, $getRight, $getTop, $getBottom) = self::findCropbox($image, $leftMost, $bottomMost, $rightMost, $height - 1, true);
+			
+			$bottomMost = ($getBottom > $bottomMost ? $getBottom : $bottomMost);
+		}
+		
+		// Trim all of the transparency from the image
+		self::crop($image, $leftMost, $topMost, $rightMost, $bottomMost);
+	}
+	
+	
+/****** Find the Crop Box (used by trimTransparency()) ******/
+	private static function findCropbox
+	(
+		&$image					/* <image object> The image that you want to return a cropbox indicator. */,
+		$posX					/* <int> The x position of where to start searching on the image. */,
+		$posY					/* <int> The y position of where to start searching on the image. */,
+		$posX2					/* <int> The x position of where to stop searching. */,
+		$posY2					/* <int> The y position of where to stop searching. */,
+		$gridSize = 5			/* <int> Precision of the grid search (larger number = less precise, true = exact) */
+	)					/* RETURNS <array> : list($x, $y, $x2, $y2) - the rectangle of detected boxes.  */
+	
+	// $image = Image::findCropbox($image, $leftMost, $topMost, $rightMost, $bottomMost);
+	{
+		// Prepare Important Values for the Image Grid
+		$leftMost = $posX2;
+		$rightMost = $posX;
+		$topMost = $posY2;
+		$bottomMost = $posY;
+		
+		if($gridSize === true)
+		{
+			$widthIntervals = 1;
+			$heightIntervals = 1;
+		}
+		else
+		{
+			$widthIntervals = ($posX2 - $posX) / ($gridSize - 1);
+			$heightIntervals = ($posY2 - $posY) / ($gridSize - 1);
+		}
+		
+		// Search every 1/Xth of the image grid to speed up the crop-checking process.
+		for($x = $posX;$x <= $posX2 + 1;$x += $widthIntervals)
+		{
+			for($y = $posY;$y <= $posY2;$y += $heightIntervals)
+			{
+				// Restrict to edges if applicable
+				$getX = min(ceil($x), $posX2);
+				$getY = min(ceil($y), $posY2);
+				
+				// Retrieve the color at the current location
+				$rgb = imagecolorat($image, $getX, $getY);
+				
+				// Translate the colors to RGB values
+				$alpha = ($rgb & 0x7F000000) >> 24;
+				
+				if($alpha != 127)
+				{
+					// Determine the borders of the inner rectangle that you want to crop-check.
+					
+					// Set Horizontal Values (Crop)
+					if($getX < $leftMost) { $leftMost = $getX; }
+					if($getX > $rightMost) { $rightMost = $getX; }
+					
+					// Set Vertical Values (Crop)
+					if($getY < $topMost) { $topMost = $getY; }
+					if($getY > $bottomMost) { $bottomMost = $getY; }
+				}
+			}
+		}
+		
+		return array($leftMost, $rightMost, $topMost, $bottomMost);
+	}
+	
+	
+/****** Rescale Image ******/
+	public static function rescale
+	(
+		&$image			/* <image object> The image object you want to crop. */,
+		$newWidth		/* <int> The new width of the image (scaled proportionally). */,
+		$newHeight		/* <int> The new height of the image (scaled proportionally). */,
+		$x = 0			/* <int> The upper-left X boundary for what part of your image you want to rescale. */,
+		$y = 0			/* <int> The upper-left Y boundary for what part of your image you want to rescale. */,
+		$x2 = 0			/* <int> The bottom-right X boundary to rescale. (default is max width) */,
+		$y2 = 0			/* <int> The bottom-right Y boundary to rescale. (default is max width0 */
+	)					/* RETURNS <void> */
+	
+	// Image::rescale($image, $newWidth, $newHeight, $x, $y, $x2, $y2);
+	{
+		// Get dimensions of the image
+		$width = ($x2 <= $x ? imagesx($image) - $x : $x2 - $x);
+		$height = ($y2 <= $x ? imagesy($image) - $y : $y2 - $y);
+		
+		// Prepare New Rescaled Image
+		$imageNew = imagecreatetruecolor($newWidth, $newHeight);
+		$transColor = imagecolorallocatealpha($imageNew, 0, 0, 0, 127);
+		imagefill($imageNew, 0, 0, $transColor);
+		
+		// Rescale Image
+		$scaledImage = imagecreatetruecolor($newWidth, $newHeight);
+		imagesavealpha($scaledImage, true);
+		imagefill($scaledImage, 0, 0, $transColor);
+		imagecopyresampled($scaledImage, $image, 0, 0, $x, $y, $newWidth, $newHeight, $width, $height);
+		
+		// Rescale the Image you're working with
+		$image = $scaledImage;
+		
+		// Clear Memory
+		unset($scaledImage);
+		unset($imageNew);
+	}
+	
+	
 /****** Display Image ******/
 	public static function display
 	(
@@ -149,6 +312,8 @@ abstract class Image {
 	
 	// Image::display($image);
 	{
+		header("Content-Type: image/png");
+		
 		imagealphablending($image, true);
 		imagesavealpha($image, true);
 		
@@ -196,6 +361,7 @@ abstract class Image {
 	
 	
 /****** Change Hue of Image ******/
+// Note: This was modified from an original script by Tatu Ulmanen on Stack Overflow.
 	public static function changeHue
 	(
 		&$image			/* <image> The image that you'd like to change the hue of. */,

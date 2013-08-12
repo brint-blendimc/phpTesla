@@ -8,7 +8,7 @@
 * 
 ****** Methods Available ******
 * $data->getClientData()			// Puts all of the $_GET and $_POST values retrieved into $data
-* $data->getURLSegments()			// Retrieves all URL Segments of the current address and returns them.
+* $data->getURLRoutes()			// Retrieves all URL Segments of the current address and returns them.
 * 
 */
 
@@ -47,17 +47,17 @@ When this class is instantiated, gather the client data ($_GET and $_POST) and s
 	}
 	
 /****** Return the URL Segments for this Page Load ******/
-	public static function getURLSegments(
-	)		/* RETURNS <array> : URL Segments of the web address provided (e.g. "domain.com/{segment1}/{segment2}"); */
+	public static function getURLRoutes(
+	)		/* RETURNS <array> : URL routes of the web address provided (e.g. "domain.com/{route1}/{route2}"); */
 	
-	// $url = Data::getURLSegments();
+	// $url = Data::getURLRoutes();
 	{
 		// Strip out any query string data (if used)
 		$urlString = explode("?", rawurldecode($_SERVER['REQUEST_URI']));
 		
 		// Sanitize any unsafe characters from the URL
 		$urlString = str_replace(" ", "-", $urlString[0]);
-		$urlString = Sanitize::variable($urlString, "_-/.");
+		$urlString = Sanitize::variable($urlString, "_-/.+");
 		
 		// Section the URL into multiple segments so that each can be added to the array individually
 		$segments = explode("/", ltrim(rtrim($urlString, "/"), "/"));

@@ -144,7 +144,7 @@ Security::fingerprint();
 $data = new Data();
 
 // Get URL Segments
-$url = Data::getURLSegments();
+$url = Data::getURLRoutes();
 
 /****** Prepare the Database Connection ******/
 Database::initialize($database['name'], $database['user'], $database['password'], $database['host'], $database['type']);
