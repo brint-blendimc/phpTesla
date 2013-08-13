@@ -12,7 +12,8 @@ Image::changeHue($image, 45);
 Image::display($image);
 
 ****** Methods Available ******
-* Image::upload($path, $filename, $type, $size, $tmpFile, $permittedMIME);		// Uploads an image.
+* Image::upload($_filesData, $imageSaveTo, $require = array());		// Uploads an image to $imageSaveTo
+* Image::uploadFromURL($url, $imageSaveTo, $require = array());		// Uploads an image to $imageSaveTo
 * 
 * Image::create($image)							// Creates an image object.
 * Image::crop($image, $x, y, $toX, $toY)		// Crops an image based on the dimensions provided
@@ -21,69 +22,210 @@ Image::display($image);
 * Image::display(&$image)						// Displays the image directly to the screen
 * Image::swapColors(&$image, $swap)				// Switch colors on an image
 * Image::changeHue(&$image, $angle)				// Changes the hue of the image up to 360 degrees
+* Image::hexToRGB($hexValue)					// Changes a hex color value to RGB (array)
+* Image::rgbToHex($red, $green, $blue)			// Changes an rgb color value to hex.
+* Image::getColors(&$image)						// 
 */
 
 abstract class Image {
-
-	public static $maxFileSize = 102400;	// 100 kilobtyes
-
+	
+	
 /****** Upload an Image ******/
 	public static function upload
 	(
-		$imagePath			/* <str> The path that leads to the image. */,
-		$imageFilename		/* <str> The filename of the image itself. */,
-		$imageType			/* <str> The type of the image (png, jpg, gif, etc). */,
-		$imageSize			/* <int> The size of the image in bytes. */,
-		$imageTempFile		/* <str> The path where the temporary image was located. */,
+		$_filesData				/* <object> Set to $_FILES['input_name'] */,
+		$imageSaveTo			/* <str> The path + filename where you want to save the image. */,
+		$require = array()		/* <array> Parameters of required data:
+			['maxFileSize']			<int> The maximum file size allowed (default 1 meg)
+			['minWidth']			<int> Minimum width allowed (default 50)
+			['maxWidth']			<int> Maximum width allowed (default 1000)
+			['minHeight']			<int> Minimum height allowed (default 50)
+			['maxHeight']			<int> Maximum height allowed (default 1000)
+			['allowedMime']			<array> Allowed mime types: default: array('image/gif', 'image/jpeg', 'image/pjpeg', 'image/png') */
 		
-							/* <array> Array of permitted mime types. */
-		$permittedMIME = array('image/gif', 'image/jpeg', 'image/pjpeg', 'image/png')
-		
-	)						/* RETURNS <mixed> : TRUE on success, ERROR MESSAGE on failure. */
+	)							/* RETURNS <bool> : TRUE on success, FALSE on failure. */
 	
-	// Image::upload("./path/to/folder", "myImage.png", "image/png", 10000, $_FILES['images']['tmp_name'])
+	/*
+		// Upload the image
+		Image::upload($_FILES['images'], "/path/to/image.png")
+		
+		// Create the image upload form
+		<form action="./uploadImage" method="post" enctype="multipart/form-data">
+			Upload Image: <input type="file" name="images"> <input type="submit" value="Submit">
+		</form>
+	*/
 	{
+		// Get Important Values
+		$imageSaveTo = ltrim($imageSaveTo, '/');
+		$getFileDetails = explode('/', $imageSaveTo);
+		$imageFilename = $getFileDetails[count($getFileDetails) - 1];
+		$imageSaveDirectory = APP_PATH . "/" . substr($imageSaveTo, 0, strrpos($imageSaveTo, "/")) . "/";
+		$imageSaveTo = APP_PATH . "/" . $imageSaveTo;
+		$imageData = getimagesize($_filesData['tmp_name']);
+		
 		// Confirm that the directory exists (otherwise create it)
-		$imagePath = rtrim($imagePath, "/") . "/";
-		Dir::create($imagePath);
+		Dir::create($imageSaveDirectory);
 		
 		// Make sure the image name is sanitized
 		$imageFilename = str_replace(" ", "_", $imageFilename);
 		$imageFilename = Sanitize::variable($imageFilename, ".");
 		
+		// Prepare Default Checks
+		if(!isset($require['maxFileSize'])) { $require['maxFileSize'] = 1024 * 1000; }
+		if(!isset($require['minWidth'])) { $require['minWidth'] = 50; }
+		if(!isset($require['maxWidth'])) { $require['maxWidth'] = 1000; }
+		if(!isset($require['minHeight'])) { $require['minHeight'] = 50; }
+		if(!isset($require['maxHeight'])) { $require['maxHeight'] = 1000; }
+		if(!isset($require['allowedMime'])) { $require['allowedMime'] = array('image/gif', 'image/jpeg', 'image/pjpeg', 'image/png'); }
+		
+		// Check if the name is too short
 		if($imageFilename == "" or strlen($imageFilename) < 5 or strpos($imageFilename, '.') < 2)
 		{
-			return "The image name is too short.";
+			Note::error("Image Name", "The image name is too short.");
 		}
 		
 		// Check if the uploaded file is actually an image
-		if(!in_array($imageType, $permittedMIME))
+		if(!in_array($imageData['mime'], $require['allowedMime']))
 		{
-			return "You may not upload that type of image.";
+			Note::error("Image Type", "You may not upload that type of image.");
 		}
 		
 		// Check if a file of the same name has been uploaded
-		if(File::exists($imagePath . $imageFilename))
+		if(File::exists($imageSaveTo))
 		{
-			return "An image already exists with that name.";
+			Note::error("Image Name", "An image already exists with that name.");
 		}
 		
-		// Check the image size
-		if($imageSize <= 0 or $imageSize > self::$maxFileSize)
+		// Check the file size of the image
+		if($_filesData['size'] <= 0 or $_filesData['size'] > $require['maxFileSize'])
 		{
-			return "The file size must be smaller than " . self::$maxFileSize . " bytes.";
+			Note::error("Image File Size", "The file size must be smaller than " . self::$maxFileSize . " bytes.");
+		}
+		
+		// Check the minimum and maximum width of the image
+		if($imageData[0] < $require['minWidth'] or $imageData[0] > $require['maxWidth'])
+		{
+			Note::error("Image Size", "The image must be between " . $require['minWidth'] . " and " . $require['maxWidth'] . " pixels in width.");
+		}
+		
+		// Check the minimum and maximum height of the image
+		else if($imageData[1] < $require['minHeight'] or $imageData[1] > $require['maxHeight'])
+		{
+			Note::error("Image Size", "The image must be between " . $require['minHeight'] . " and " . $require['maxHeight'] . " pixels in height.");
+		}
+		
+		// Return false if there are any errors
+		if(Note::hasErrors())
+		{
+			return false;
 		}
 		
 		// Move the image into the appropriate directory (with the new name)
-		if(!move_uploaded_file($imageTempFile, $imagePath . $imageFilename))
+		if(!move_uploaded_file($_filesData['tmp_name'], $imageSaveTo))
 		{
-			return "There was an error uploading this image. Please try again.";
+			Note::error("Image Error", "There was an error uploading this image. Please try again.");
+			return false;
 		}
 		
 		return true;
 	}
 	
-
+	
+/****** Upload an Image from a URL ******/
+	public static function uploadFromURL
+	(
+		$url					/* <str> The image URL that you are saving on your server. */,
+		$imageSaveTo			/* <str> The path + filename where you want to save the image. */,
+		$require = array()		/* <array> Parameters of required data:
+			['maxFileSize']			<int> The maximum file size allowed (default 1 meg)
+			['minWidth']			<int> Minimum width allowed (default 50)
+			['maxWidth']			<int> Maximum width allowed (default 1000)
+			['minHeight']			<int> Minimum height allowed (default 50)
+			['maxHeight']			<int> Maximum height allowed (default 1000)
+			['allowedMime']			<array> Allowed mime types: default: array('image/gif', 'image/jpeg', 'image/pjpeg', 'image/png') */
+		
+	)							/* RETURNS <bool> : TRUE on success, FALSE on failure. */
+	
+	// Image::uploadFromURL($url, "/path/to/image.png")
+	{
+		// Get Important Values
+		$imageSaveTo = ltrim($imageSaveTo, '/');
+		$getFileDetails = explode('/', $imageSaveTo);
+		$imageFilename = $getFileDetails[count($getFileDetails) - 1];
+		$imageSaveDirectory = APP_PATH . "/" . substr($imageSaveTo, 0, strrpos($imageSaveTo, "/")) . "/";
+		$imageSaveTo = APP_PATH . "/" . $imageSaveTo;
+		$imageData = getimagesize($url);
+		
+		// Confirm that the directory exists (otherwise create it)
+		Dir::create($imageSaveDirectory);
+		
+		// Make sure the image name is sanitized
+		$imageFilename = str_replace(" ", "_", $imageFilename);
+		$imageFilename = Sanitize::variable($imageFilename, ".");
+		
+		// Prepare Default Checks
+		if(!isset($require['maxFileSize'])) { $require['maxFileSize'] = 1024 * 1000; }
+		if(!isset($require['minWidth'])) { $require['minWidth'] = 50; }
+		if(!isset($require['maxWidth'])) { $require['maxWidth'] = 1000; }
+		if(!isset($require['minHeight'])) { $require['minHeight'] = 50; }
+		if(!isset($require['maxHeight'])) { $require['maxHeight'] = 1000; }
+		if(!isset($require['allowedMime'])) { $require['allowedMime'] = array('image/gif', 'image/jpeg', 'image/pjpeg', 'image/png'); }
+		
+		// Check if the name is too short
+		if($imageFilename == "" or strlen($imageFilename) < 5 or strpos($imageFilename, '.') < 2)
+		{
+			Note::error("Image Name", "The image name is too short.");
+		}
+		
+		// Check if the uploaded file is actually an image
+		if(!in_array($imageData['mime'], $require['allowedMime']))
+		{
+			Note::error("Image Type", "You may not upload that type of image.");
+		}
+		
+		// Check if a file of the same name has been uploaded
+		if(File::exists($imageSaveTo))
+		{
+			Note::error("Image Name", "An image already exists with that name.");
+		}
+		
+		// Check the file size of the image
+		/*
+		if($_filesData['size'] <= 0 or $_filesData['size'] > $require['maxFileSize'])
+		{
+			Note::error("Image File Size", "The file size must be smaller than " . self::$maxFileSize . " bytes.");
+		}
+		*/
+		
+		// Check the minimum and maximum width of the image
+		if($imageData[0] < $require['minWidth'] or $imageData[0] > $require['maxWidth'])
+		{
+			Note::error("Image Size", "The image must be between " . $require['minWidth'] . " and " . $require['maxWidth'] . " pixels in width.");
+		}
+		
+		// Check the minimum and maximum height of the image
+		else if($imageData[1] < $require['minHeight'] or $imageData[1] > $require['maxHeight'])
+		{
+			Note::error("Image Size", "The image must be between " . $require['minHeight'] . " and " . $require['maxHeight'] . " pixels in height.");
+		}
+		
+		// Return false if there are any errors
+		if(Note::hasErrors())
+		{
+			return false;
+		}
+		
+		// Move the image into the appropriate directory (with the new name)
+		if(!copy($url, $imageSaveTo))
+		{
+			Note::error("Image Error", "There was an error uploading this image. Please try again.");
+			return false;
+		}
+		
+		return true;
+	}
+	
+	
 /****** Create Image Object from Path ******/
 	public static function create
 	(
@@ -95,7 +237,7 @@ abstract class Image {
 		return imagecreatefrompng($imagePath);
 	}
 	
-
+	
 /****** Prepare a New Image ******/
 	public static function createBase
 	(
@@ -304,6 +446,90 @@ abstract class Image {
 	}
 	
 	
+/****** Blend an Image Layer ******/
+	public static function blend
+	(
+		&$image			/* <image> The image you'd like to modify. */,
+		$blendPath		/* <str> A path to the image you'd like to blend. */,
+		$posX = 0			/* <int> X position of the layer. */,
+		$posY = 0			/* <int> Y position of the layer. */,
+		$layerX = 0			/* <int> X crop-position of layer. */,
+		$layerY = 0			/* <int> Y crop-position of layer. */,
+		$layerWidth = 0		/* <int> Width of the layer. (default is actual size) */,
+		$layerHeight = 0	/* <int> Height of the layer. (default is actual size) */
+	)					/* RETURNS <true> */
+	
+	// Image::blend($image, "/path/to/image.png");
+	{
+		// Load the new layer & prepare the overlay method
+		$draw = imagecreatefrompng($blendPath);
+		imagelayereffect($draw, IMG_EFFECT_OVERLAY);
+		
+		// Check default sizes
+		if($layerWidth == 0) { $layerWidth = imagesx($draw); }
+		if($layerHeight == 0) { $layerHeight = imagesy($draw); }
+		
+		// Copy the layer to the image
+		imagecopy($draw, $image, $posX, $posY, $layerX, $layerY, $layerWidth, $layerHeight);
+		$image = $draw;
+	}
+	
+	
+/****** Overlay an Image Layer ******/
+	public static function overlay
+	(
+		&$image			/* <image> The image you'd like to modify. */,
+		$overlayPath	/* <str> A path to the image you'd like to overlay. */,
+		$posX = 0			/* <int> X position of the layer. */,
+		$posY = 0			/* <int> Y position of the layer. */,
+		$layerX = 0			/* <int> X crop-position of layer. */,
+		$layerY = 0			/* <int> Y crop-position of layer. */,
+		$layerWidth = 0		/* <int> Width of the layer. (default is actual size) */,
+		$layerHeight = 0	/* <int> Height of the layer. (default is actual size) */
+	)					/* RETURNS <true> */
+	
+	// Image::overlay($image, "/path/to/image.png");
+	{
+		// Load the new layer & prepare the overlay method
+		$draw = imagecreatefrompng($overlayPath);
+		imagelayereffect($image, IMG_EFFECT_OVERLAY);
+		
+		// Check default sizes
+		if($layerWidth == 0) { $layerWidth = imagesx($draw); }
+		if($layerHeight == 0) { $layerHeight = imagesy($draw); }
+		
+		// Copy the layer to the image
+		imagecopy($image, $draw, $posX, $posY, $layerX, $layerY, $layerWidth, $layerHeight);
+	}
+	
+	
+/****** Layer a new image on top of am existing image ******/
+	public static function layer
+	(
+		&$image				/* <image> The image you'd like to modify. */,
+		$layerPath			/* <str> A path to the image you'd like to layer on top. */,
+		$posX = 0			/* <int> X position of the layer. */,
+		$posY = 0			/* <int> Y position of the layer. */,
+		$layerX = 0			/* <int> X crop-position of layer. */,
+		$layerY = 0			/* <int> Y crop-position of layer. */,
+		$layerWidth = 0		/* <int> Width of the layer. (default is actual size) */,
+		$layerHeight = 0	/* <int> Height of the layer. (default is actual size) */
+	)						/* RETURNS <true> */
+	
+	// Image::layer($image, "/path/to/image.png");
+	{
+		// Load the new layer
+		$draw = imagecreatefrompng($layerPath);
+		
+		// Check default sizes
+		if($layerWidth == 0) { $layerWidth = imagesx($draw); }
+		if($layerHeight == 0) { $layerHeight = imagesy($draw); }
+		
+		// Copy the layer to the image
+		imagecopy($image, $draw, $posX, $posY, $layerX, $layerY, $layerWidth, $layerHeight);
+	}
+	
+	
 /****** Display Image ******/
 	public static function display
 	(
@@ -360,6 +586,90 @@ abstract class Image {
 	}
 	
 	
+/****** Colorize the Image ******/
+	public static function colorize
+	(
+		&$image			/* <image> The image you'd like to colorize. */,
+		$red			/* <int> The red influence for the colorization. */,
+		$green			/* <int> The green influence for the colorization. */,
+		$blue			/* <int> The blue influence for the colorization. */,
+		$alpha = 0		/* <int> The alpha influence for the colorization. */
+	)					/* RETURNS <void>  */
+	
+	// Image::colorize($image, 150, 20, 20, 0);
+	{
+		imagefilter($image, IMG_FILTER_COLORIZE, $red, $green, $blue, $alpha);
+	}
+	
+	
+/****** Pixelate the Image ******/
+	public static function pixelate
+	(
+		&$image					/* <image> The image you'd like to pixelate. */,
+		$blockSize = 2			/* <int> The block size you want to use for pixelation. */,
+		$advanced = false		/* <bool> True for advanced pixelation. */
+	)							/* RETURNS <void>  */
+	
+	// Image::pixelate($image, 3);
+	{
+		imagefilter($image, IMG_FILTER_PIXELATE, $blockSize, $advanced);
+	}
+	
+	
+/****** Multiply the Image ******/
+	public static function multiply
+	(
+		&$image					/* <image> The image you'd like to pixelate. */,
+		$layerPath				/* <str> The image path of the layer to multiply. */,
+		$posX = 0				/* <int> X position of the image (to start multiplier). */,
+		$posY = 0				/* <int> Y position of the image (to start multiplier). */,
+		$layerX = 0				/* <int> X crop-position of layer. */,
+		$layerY = 0				/* <int> Y crop-position of layer. */,
+		$layerWidth = 0			/* <int> Width of the layer. (default is actual size) */,
+		$layerHeight = 0		/* <int> Height of the layer. (default is actual size) */
+	)							/* RETURNS <void>  */
+	
+	// Image::multiply($image, "/path/to/image.png");
+	{
+		// Get the multiplier layer
+		$draw = imagecreatefrompng($layerPath);
+		
+		// Check default sizes
+		if($layerWidth == 0) { $layerWidth = imagesx($draw); }
+		if($layerHeight == 0) { $layerHeight = imagesy($draw); }
+		
+		// Cycle through every pixel in the image
+		for($x = $layerX;$x < $layerWidth;$x++)
+		{
+			for($y = $layerY;$y < $layerHeight;$y++)
+			{
+				// Retrieve the color at the current location
+				$rgb_under = imagecolorat($image, $x + $posX, $y + $posY);
+				$rgb = imagecolorat($draw, $x, $y);
+				
+				// Translate the colors to RGB values
+				$alpha = ($rgb & 0x7F000000) >> 24;
+				
+				if($alpha != 127)
+				{
+					// This section will "multiply" blend the lower layers with this shadow layer.
+					// It uses the formula: round(top pixel * bottom pixel / 255)
+					
+					$r2		= ($rgb_under >> 16) & 0xFF;
+					$g2		= ($rgb_under >> 8) & 0xFF;
+					$b2		= $rgb_under & 0xFF;
+					
+					$r		= ($rgb >> 16) & 0xFF;
+					$g		= ($rgb >> 8) & 0xFF;
+					$b		= $rgb & 0xFF;
+					
+					imagesetpixel($image, $x + $posX, $y + $posY, imagecolorallocatealpha($draw, round($r * $r2 / 255), round($g * $g2 / 255), round($b * $b2 / 255), $alpha));
+				}
+			}
+		}
+	}
+	
+		
 /****** Change Hue of Image ******/
 // Note: This was modified from an original script by Tatu Ulmanen on Stack Overflow.
 	public static function changeHue
@@ -402,7 +712,59 @@ abstract class Image {
 			}
 		}
 	}
-
+	
+	
+/****** Change Hex Color to RGB Color ******/
+	static public function hexToRGB
+	(
+		$hexColor		/* The hex color value that you want to change to rgb. */
+	)					/* RETURNS <array> : array($red, $green, $blue) */
+	
+	// list($red, $green, $blue) = Image::hexToRGB("#FF0000");
+	{
+		$hexColor = str_replace("#", "", $hexColor);
+		
+		// If the hex code is 3 characters long
+		if(strlen($hexColor) == 3)
+		{
+			$red = hexdec(substr($hexColor, 0, 1).substr($hexColor, 0, 1));
+			$green = hexdec(substr($hexColor, 1, 1).substr($hexColor, 1, 1));
+			$blue = hexdec(substr($hexColor, 2, 1).substr($hexColor, 2, 1));
+		}
+		
+		// If the hex code is 6 characters long
+		else
+		{
+			$red = hexdec(substr($hexColor, 0, 2));
+			$green = hexdec(substr($hexColor, 2, 2));
+			$blue = hexdec(substr($hexColor, 4, 2));
+		}
+		
+		// Return the RGB code as an array
+		return array($red, $green, $blue);
+	}
+	
+	
+/****** Change RGB Color to Hex Color ******/
+	static public function rgbToHex
+	(
+		$red		/* <int> The number to represent the red value in RGB. */,
+		$green		/* <int> The number to represent the green value in RGB */,
+		$blue		/* <int> The number to represent the blue value in RGB */
+	)				/* RETURNS <str> : The reuslting hex color value */
+	
+	// $hexValue = Image::rgbToHex(255, 0, 0)
+	{
+		$hex = "#";
+		$hex .= str_pad( dechex($red), 2, "0", STR_PAD_LEFT );
+		$hex .= str_pad( dechex($green), 2, "0", STR_PAD_LEFT );
+		$hex .= str_pad( dechex($blue), 2, "0", STR_PAD_LEFT );
+		
+		// Return the hex value generated
+		return strtoupper($hex);
+	}
+	
+	
 /****** Private Helper - Transmute RGB to HSL ******/
 	private static function changeRGBtoHSL($r, $g, $b)
 	{

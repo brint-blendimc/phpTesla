@@ -5,8 +5,8 @@
 * 
 ****** How To Use This Class ******
 
-// Validate if the Form was Successful
-if(Form::validate($data)) { echo "This form validated successfully."; }
+// Validate that the Form was Submitted Successful
+if(Form::submit($data)) { echo "This form validated successfully."; }
 
 // Prepare the Form
 <form action="./thispage" method="post">
@@ -16,7 +16,7 @@ if(Form::validate($data)) { echo "This form validated successfully."; }
 
 ****** Methods Available ******
 * Form::prepare($uniqueIdentifier = "", $expiresInminutes = 300)	// Prepares hidden tags to protect a form.
-* Form::validate($data, $uniqueIdentifier = "")						// Validates if the form was successful or not.
+* Form::submit($data, $uniqueIdentifier = "")						// Validates if the form submission was successful.
 */
 
 abstract class Form {
@@ -59,8 +59,8 @@ abstract class Form {
 	}
 	
 	
-/****** Validate a Form via Special Protection ******/
-	public static function validate
+/****** Validate a Form Submission using Special Protection ******/
+	public static function submit
 	(
 		$data					/* <object>
 			-> formguard_salt		The random salt used when the form was created.
@@ -70,7 +70,7 @@ abstract class Form {
 		$uniqueIdentifier = ""	/* <str> You can specify a unique identifier that the form validation requires. */
 	)							/* RETURNS <html> : HTML to insert into the form. */
 	
-	// Form::validate($data);
+	// Form::submit($data);
 	{
 		// Make sure all of the right data was sent
 		if(isset($data->formguard_key) && isset($data->formguard_salt) && isset($data->tos_soimportant) && isset($data->human_answer))

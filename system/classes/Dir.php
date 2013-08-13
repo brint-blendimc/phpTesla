@@ -69,6 +69,12 @@ abstract class Dir {
 			return true;
 		}
 		
+		// Reject the directory if it has illegal characters
+		if(!isSanitized::filepath($directory))
+		{
+			return false;
+		}
+		
 		// Attempt to create the directory
 		return mkdir($directory, $perm, $recursive);
 	}
