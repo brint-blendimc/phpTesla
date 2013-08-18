@@ -14,7 +14,7 @@
 
 CREATE TABLE IF NOT EXISTS `users`
 (
-	`id`					smallint(5)		unsigned	NOT NULL	AUTO_INCREMENT,
+	`id`					int(11)			unsigned	NOT NULL	AUTO_INCREMENT,
 	
 	`role`					varchar(12)					NOT NULL	DEFAULT '',
 	`username`				varchar(22)					NOT NULL	DEFAULT '',
@@ -33,11 +33,38 @@ CREATE TABLE IF NOT EXISTS `users`
 	
 	PRIMARY KEY (`id`),
 	UNIQUE (`username`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 ;
 
 */
 
 abstract class User {
+	
+	
+/****** Get User Data ******
+This is a faster, more optimized way of returning a user ID, though it will not verify the ID if you send an integer.
+If you need to validate the user ID (confirm it exists), you should use User::getData($user, "id") instead. */
+	public static function toID
+	(
+		$user					/* <str> The ID, username, or email of the account to get the ID of. */
+	)							/* RETURNS <int> : ID of the user (may be unsuccessful). */
+	
+	// User::toID(125)					// Returns 125 (optimized)
+	// User::toID("Joe")				// Returns 125
+	// User::toID("joe@hotmail.com")	// Returns 125
+	{
+		// Return the value normally if it's an integer
+		if(is_numeric($user))
+		{
+			return ($user + 0);
+		}
+		
+		// Get User Data
+		$getUser = self::getData($user, "id");
+		
+		if(isset($getUser['id'])) { return $getUser['id']; }
+		
+		return 0;
+	}
 	
 	
 /****** Get User Data ******/

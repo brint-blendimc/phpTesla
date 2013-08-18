@@ -14,24 +14,6 @@
 * Me::setCookie()					// Set cookies to remember the user.
 * Me::rememberMe()					// Auto-log user if they have authentic cookies.
 * 
-****** Database ******
-
-CREATE TABLE IF NOT EXISTS `users` (
-	`id`					smallint(5)		UNSIGNED	NOT NULL	AUTO_INCREMENT,
-	`username`				varchar(22)					NOT NULL	DEFAULT '',
-	`display_name`			varchar(22)					NOT NULL	DEFAULT '',
-	`role`					varchar(14)					NOT NULL	DEFAULT '',
-	`email`					varchar(48)					NOT NULL	DEFAULT '',
-	`password`				varchar(60)					NOT NULL	DEFAULT '',
-	`timezone`				varchar(32)					NOT NULL	DEFAULT '',
-	`email_confirmed`		tinyint(1)		UNSIGNED	NOT NULL	DEFAULT '0',
-	`date_joined`			int(11)			UNSIGNED	NOT NULL	DEFAULT '0',
-	`date_lastLogin`		int(11)			UNSIGNED	NOT NULL	DEFAULT '0',
-	`auth_token`			varchar(22)					NOT NULL	DEFUALT '',
-	PRIMARY KEY (`id`),
-	UNIQUE (`username`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 ;
-
 */
 
 abstract class Me {
@@ -62,6 +44,21 @@ abstract class Me {
 		}
 		
 		return true;
+	}
+	
+	
+/****** Return My ID ******/
+	public static function id (
+	)				/* RETURNS <int> : Active user's current ID, or 0 on false. */
+	
+	// Me::id()
+	{
+		if(isset($_SESSION[USER_SESSION]['id']))
+		{
+			return $_SESSION[USER_SESSION]['id'];
+		}
+		
+		return 0;
 	}
 	
 	
