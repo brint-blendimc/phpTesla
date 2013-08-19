@@ -8,13 +8,13 @@
 
 // Create a Confirmation Link
 	
-	# Returns "http://mydomain.com/confirm/reset-password/userid/1375207477-10-29d2bfeab207a018f8b94fe9906c"
-	echo "To reset your password, please visit the following url: " . Confirm::create("reset-password", "userid", 10);
+	# Returns "http://mydomain.com/confirm/reset-password/myUsername/1375207477-10-29d2bfeab207a018f8b94fe9906c"
+	echo "To reset your password, please visit the following url: " . Confirm::create("reset-password", "myUsername", 10);
 
 // Validate a Confirmation Link
 
 	# On the Confirmation Page above, with each URL segment being $url[$x]
-	if(Confirm::validate("reset-password", "userid", "1375207477-10-29d2bfeab207a018f8b94fe9906c"))
+	if(Confirm::validate("reset-password", "myUsername", "1375207477-10-29d2bfeab207a018f8b94fe9906c"))
 	{
 		echo "Congratulations, this confirmation link is still valid!";
 	}

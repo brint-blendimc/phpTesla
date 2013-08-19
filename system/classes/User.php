@@ -4,7 +4,8 @@
 * This class sets up and handles the users, including registration, login, passwords, etc.
 * 
 ****** Methods Available ******
-* User::getData($user, $columns = "*")				// Retrieves user info based on ID, username, or email.
+* User::toID($user)									// Translates ID, username, or email to ID (optimized)
+* User::getData($user, $columns = "*")				// Retrieves & verifies user info based on ID, username, or email.
 * User::exists($user)								// Checks if the user exists (by ID, username, or email).
 * User::register($username, $password, $email = "")	// Registers a user (email can be optional).
 * User::setPassword($username, $password)			// Sets a new password for the user.
