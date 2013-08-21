@@ -5,7 +5,8 @@
 * specific times.
 * 
 ****** Methods Available ******
-* Job::create($title, $function, $args, $runEveryXSeconds = 0, $schedule = "")
+* Job::create($title, $function, $args, $runEveryXSeconds = 0, $schedule = "")		// Creates a routine task
+* Job::once($title, $function, $args, $runTime = 0)									// Creates a task to be run once
 * 
 * Job::delete($jobID)				// Deletes a job.
 * Job::runQueue()					// Run the job queue.
