@@ -8,7 +8,7 @@
 * 
 ****** Methods Available ******
 * $data->getClientData()			// Puts all of the $_GET and $_POST values retrieved into $data
-* $data->getURLRoutes()			// Retrieves all URL Segments of the current address and returns them.
+* $data->getURLSegments()			// Retrieves all URL Segments of the current address and returns them.
 * 
 */
 
@@ -21,6 +21,14 @@ When this class is instantiated, gather the client data ($_GET and $_POST) and s
 	{
 		$this->getClientData();
 	}
+
+	
+/****** Default GET Response (if value doesn't exist) ******/
+	public function __get($name)
+	{
+		return null;
+	}
+	
 
 /****** Retrieve User Arguments ($_GET and $_POST) ******/
 	private function getClientData()
@@ -46,11 +54,12 @@ When this class is instantiated, gather the client data ($_GET and $_POST) and s
 		return true;
 	}
 	
-/****** Return the URL Segments for this Page Load ******/
-	public static function getURLRoutes(
-	)		/* RETURNS <array> : URL routes of the web address provided (e.g. "domain.com/{route1}/{route2}"); */
 	
-	// $url = Data::getURLRoutes();
+/****** Return the URL Segments for this Page Load ******/
+	public static function getURLSegments(
+	)		/* RETURNS <array> : URL Segments of the web address provided (e.g. "domain.com/{segment1}/{segment2}"); */
+	
+	// $url = Data::getURLSegments();
 	{
 		// Strip out any query string data (if used)
 		$urlString = explode("?", rawurldecode($_SERVER['REQUEST_URI']));

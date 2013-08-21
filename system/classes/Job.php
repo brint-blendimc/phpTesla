@@ -15,14 +15,17 @@
 CREATE TABLE IF NOT EXISTS `jobs` (
 	`id`					smallint(11)	UNSIGNED	NOT NULL	AUTO_INCREMENT,
 	`title`					varchar(32)					NOT NULL	DEFAULT '',
+	
 	`class`					varchar(18)					NOT NULL	DEFAULT '',
 	`method`				varchar(24)					NOT NULL	DEFAULT '',
-	`parameters`			varchar(250)				NOT NULL	DEFAULT '',
+	`parameters`			text						NOT NULL	DEFAULT '',
+	
 	`runEveryXSeconds`		mediumint(8)	UNSIGNED	NOT NULL	DEFAULT '0',
 	`schedule`				varchar(250)				NOT NULL	DEFAULT '',
 	`startAt`				int(11)			UNSIGNED	NOT NULL	DEFAULT '0',
 	`endAt`					int(11)			UNSIGNED	NOT NULL	DEFAULT '0',
 	`nextActivation`		int(11)			UNSIGNED	NOT NULL	DEFAULT '0',
+	
 	PRIMARY KEY (`id`),
 	INDEX (`nextActivation`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 ;
@@ -64,19 +67,12 @@ abstract class Job {
 			Note::error("Job Function", "The method you tried to use, " . $jobFunction[0] . "::" . $jobFunction[1] . "(), doesn't exist.");
 		}
 		
-		// Arguments
-		$argsJSON = json_encode($args);
-		
-		if(strlen($argsJSON) > 250 && !Note::hasErrors())
-		{
-			Note::error("Job Parameters", "Your paramter list is too long for the job " . $jobFunction[0] . "::" . $jobFunction[1] . "().");
-		}
-		
 		// Return FALSE if we've had any errors so far
 		if(Note::hasErrors()) { return false; }
 		
-		// Quick Sanitizing
+		// Quick Sanitizing & Preparation
 		$title = Sanitize::safeword($title);
+		$argsJSON = json_encode($args);
 		
 		// Prepare the activation time
 		$startAt = $startAt < time() ? $startAt = time() : $startAt;

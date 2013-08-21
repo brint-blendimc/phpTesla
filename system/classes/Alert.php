@@ -129,7 +129,28 @@ abstract class Alert {
 	
 	// self::createMultiple($userList, "You've received a message from <a href='./joe'>Joe!</a>", "/icons/pm.png", "/messages")
 	{
-		// Need to build in this functionality
-		return false;
+		// Prepare Values
+		$sqlArray = array();
+		$sqlValues = "";
+		$time = time();
+		
+		foreach($userList as $user)
+		{
+			// Verify User
+			$userData = User::getData($user, "id");
+			
+			if(isset($userData['id']))
+			{
+				// The user exists, so add in the details here:
+				$sqlValues .= ($sqlValues != "" ? ", " : "") . "(?, ?, ?, ?, ?)";
+				array_push($sqlArray, $userData['id'], $alert, $image, $link, $time);
+			}
+		}
+		
+		// If no users existed or SQL wasn't valid, end the function here
+		if($sqlValues == "") { return false; }
+		
+		// Create the Alert
+		return Database::query("INSERT INTO `alerts_personal` (`user_id`, `alert`, `image`, `link`, `time_posted`) VALUES " . $sqlValues, $sqlArray);
 	}
 }
