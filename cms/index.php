@@ -26,3 +26,17 @@ Me::initialize();
 
 // Determine which page you should point to, then load it
 require_once(SYS_PATH . "/routes.php");
+
+
+/****** Dynamic URLs ******
+// If a page hasn't loaded yet, check if there is a dynamic load
+if($url[0] != '')
+{
+	$userData = Database::selectOne("SELECT * FROM users WHERE login=? LIMIT 1", array($url[0]));
+	
+	if(isset($userData['id']))
+	{
+		require_once(APP_PATH . '/profile.php'); exit;
+	}
+}
+//*/

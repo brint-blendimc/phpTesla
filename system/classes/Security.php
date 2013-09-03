@@ -2,17 +2,74 @@
 
 /****** Security Class ******
 * This class provides methods for security handling, such as fingerprinting, password hashing, etc.
-*
+* 
 ****** Methods Available ******
 * Security::setPassword($password, <$extraSalts...>)		// Hashes a plaintext password into an encrypted one.
-* Security::getPassword($password, $hash, <$extraSalts...>)	// Hashes a plaintext password into an encrypted one.
-* Security::quickHash($token)								// Hases a quick token (not designed for passwords)
+* Security::getPassword($password, $hash, <$extraSalts...>)	// Validates the password provided.
+* Security::setBCrypt($password, <$extraSalts...>)			// Hashes a plaintext password into a BCrypt hash.
+* Security::getBCrypt($password, $hash, <$extraSalts...>)	// Validates a BCrypt hash.
+* Security::quickHash($token)								// Hashes a quick token (not designed for passwords)
+* Security::strongHash($token)								// Hashes a value (can be used for passwords).
 * Security::fingerprintScan()								// Run this to help resist fake sessions.
 */
 
-abstract class Security
-{
-	/****** Hash a Password ******
+abstract class Security {
+	
+	
+/****** Set a Password ******/
+	public static function setPassword
+	(
+		$password 		/* <str> */
+	)
+	
+	// $passHash = Security::setPassword("myPassword", "--extraSalt--");
+	{
+		// Complicate the password by adding extra salts as desired
+		$args = func_get_args();
+		
+		for($i = 1;$i < count($args);$i++)
+		{
+			$password .= $args[$i];
+		}
+		
+		if(defined("SITE_SALT"))
+		{
+			$password .= SITE_SALT;
+		}
+		
+		// Create a randomized hash salt that will be saved with the final hash
+		return self::strongHash($password);
+	}
+	
+	
+/****** Validate a Password ******/
+	public static function getPassword
+	(
+		$password		/* <str> The plaintext password that you're testing. */
+		/* ARGS */		/* <str> Any additional arguments used during password generation must be passed again. */
+	)					/* RETURN <bool> TRUE if the password is valid, FALSE if not. */
+	
+	// if(Security::getPassword("myPassword", "nSj8FwCp9imZ2wgFkmnyP9...")) { echo "Password is valid!"; }
+	{
+		/****** Complicate the password by adding extra salts as desired ******/
+		$args = func_get_args();
+		
+		for($i = 1;$i < count($args);$i++)
+		{
+			$password .= $args[$i];
+		}
+		
+		if(defined("SITE_SALT"))
+		{
+			$password .= SITE_SALT;
+		}
+		
+		/****** Create a randomized hash salt that will be saved with the final hash ******/
+		return self::strongHash($password);
+	}
+	
+	
+	/****** Encrypt with BCrypt ******
 	* This function hashes a password (making it one-way) so that its plaintext form cannot be read. It uses the BCrypt
 	* algorithm. BCrypt stores its salt in the return hash - the intent here is that can then generate a completely
 	* random salt for every single password. This prevents rainbow tables and brute forcing that could otherwise find
@@ -26,12 +83,12 @@ abstract class Security
 	* 
 	* To strengthen the algorithm, we will append a password salt to the password itself (prior to the encryption being
 	* run). This can be done by adding additional parameters to this function. As long as the extra parameters remain
-	* the same when you apply the ::getPassword() method, it will match the return hash. For example:
+	* the same when you apply the ::getBCrypt() method, it will match the return hash. For example:
 	*
-	* $passHash = Security::setPassword("MyPassword", "^ExtraSalt^", "myUser", "MISCSALT");
+	* $passHash = Security::setBCrypt("MyPassword", "^ExtraSalt^", "myUser", "MISCSALT");
 	*
 	* // Returns TRUE
-	* return $passHash === Security::getPassword("MyPassword", $passwordHash, "^ExtraSalt^", "myUser", "MISCSALT");
+	* return $passHash === Security::getBCrypt("MyPassword", $passwordHash, "^ExtraSalt^", "myUser", "MISCSALT");
 	* 
 	* By using additional parameters (such as the user's username or site-wide password hashes), we generate much more
 	* complexity in the passwords to crack. The password in the above example would look like this:
@@ -39,12 +96,12 @@ abstract class Security
 	*		MyPassword^ExtraSalt^myUsernameMISCSALT
 	* 
 	****** How to call the method ******
-	* $passHash = Security::setPassword($password);								// Creates hash without unique salts.
-	* $passHash = Security::setPassword($password, "salt!", $userID, "etc");	// Best practice; uses related salts.
+	* $passHash = Security::setBCrypt($password);								// Creates hash without unique salts.
+	* $passHash = Security::setBCrypt($password, "salt!", $userID, "etc");	// Best practice; uses related salts.
 	* 
 	****** To recover the value of an existing hash ******
 	* $data = Database::query("SELECT password FROM users WHERE username='admin' LIMIT 1"));
-	* $checkPass = Security::getPassword($_POST['password'], $data['password'], "^ExtraSalt^", "myUser", "MISCSALT");
+	* $checkPass = Security::getBCrypt($_POST['password'], $data['password'], "^ExtraSalt^", "myUser", "MISCSALT");
 	* 
 	* if($checkPass == $data['password']) { echo "Password Successful"; }
 	* 
@@ -54,7 +111,7 @@ abstract class Security
 	* 
 	* RETURNS <string>			Returns the hashed password to store in the database.
 	*/
-	public static function setPassword($password)
+	public static function setBCrypt($password)
 	{
 		/****** Complicate the password by adding extra salts as desired ******/
 		$args = func_get_args();
@@ -87,15 +144,15 @@ abstract class Security
 		return crypt($password, $hashSalt);
 	}
 	
-	/****** Validate a Password ******
-	* This function tests to see if a password matches what is in the database. See the ::setPassword method above for
+	/****** Validate a BCrypt Value ******
+	* This function tests to see if a password matches what is in the database. See the ::setBCrypt method above for
 	* more details on how this is properly done.
 	*
 	****** How to call the method ******
-	* if($sql['password'] == Security::getPassword($_GET['password'], $sql['password'])) { echo "Password success."; }
+	* if($sql['password'] == Security::getBCrypt($_GET['password'], $sql['password'])) { echo "Password success."; }
 	*
 	* // Note: if the password was generated with multiple salts, you'll need to use them again. For example:
-	* ... Security::getPassword($_GET['password'], $sql['password'], "^ExtraSalt^", "myUser", "MISCSALT") ...
+	* ... Security::getBCrypt($_GET['password'], $sql['password'], "^ExtraSalt^", "myUser", "MISCSALT") ...
 	* 
 	****** Parameters ******
 	* @string	$password		The password that the user enters (or is otherwise being tested).
@@ -104,7 +161,7 @@ abstract class Security
 	* 
 	* RETURNS <string>			Returns the hashed password to test if it's identical to the one stored.
 	*/
-	public static function getPassword($password, $passwordHash)
+	public static function getBCrypt($password, $passwordHash)
 	{
 		/****** Complicate the password by adding extra salts as desired ******/
 		$args = func_get_args();
@@ -160,7 +217,7 @@ abstract class Security
 		/* ARGS */			/* <ARGS> Any additional arguments to be included in the hash */
 	)						/* RETURNS <str> The hashed value. */
 	
-	// if(Security::strongHash($test) == "sdfve4ec457d0a974c48d5685ac2.....<so on>.....") { echo "Test Passed!"; }
+	// if(Security::strongHash($test) == "XdNve4kc4fJsc73Dhsmzpc2.....<so on>.....") { echo "Test Passed!"; }
 	{
 		/****** Complicate the hash by adding extra salts as desired ******/
 		$args = func_get_args();

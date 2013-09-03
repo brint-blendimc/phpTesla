@@ -5,19 +5,32 @@
 * 
 ****** Example of Use ******
 
-// Prepare Data Table based on a desired table in a database
-$dataTable = new DataTable($database['name'], "users");
+// Configure Data Table
+$dataTable = new DataTable(
+	
+	// The name of the database to work with
+	$config->database['name'],
+	
+	// The name of the table to work with
+	"users",
+	
+	// The table column used as the unique identifier (such as the PRIMARY KEY)
+	"id",
+	
+	// Edit Mode Value: The value of the table column for editing:
+	$data->edit
+);
 
 // List the Columns that you want to manage in this Data Table.
 // There are multiple column settings to choose from: "select", "fuzzyTime"
-$dataTable->setColumns("id", "username", "email", ["hair_color" => "select"], ["date_joined" => 'fuzzyTime']);
+$dataTable->setColumns("id", "username", "email", array("hair_color" => "select"), array("date_joined" => 'fuzzyTime'));
 
 // Provide Rules about your Data Table
 $dataTable->setPage($data->page);
 $dataTable->setLimit($data->limit);
-$dataTable->addFilter("date_joined", ">", time() - 3600);
-$dataTable->addFilter("confirmed", "=", 1);
-$dataTable->addSort("date_joined", "desc");
+//$dataTable->addFilter("date_joined", ">", time() - 3600);
+//$dataTable->addFilter("confirmed", "=", 1);
+//$dataTable->addSort("date_joined", "desc");
 
 // Acquire the Data Table Schema
 // This is needed for $dataTable->view and $dataTable->autoForm
@@ -27,13 +40,46 @@ $dataTable->getSchema();
 $dataTable->runActions();
 
 // Prepare a form to create new entries
-$form = new Form($dataTable->table);
+$form = new Form(
+	
+	// Name of the form
+	$dataTable->table
+	
+	// The URL that the form submits to.
+,	$dataTable->urlPath
+	
+	// The database table to associate with the form.
+	// Your form only needs this if you're going to auto-process the form with ::process()
+,	$dataTable->table
+	
+	// Allow Editing Mode (if you set this to false, the options below don't matter)
+,	true
+	
+	// The table column that identifies the key to edit with.
+	// This is usually set to "id" - if not, then generally the PRIMARY KEY of the table.
+,	$dataTable->tableColumn
+	
+	// The key (column ID) of the row you are editing.
+	// So if the above value is set to "id", then this value would be the ID of what number row to edit.
+,	(isset($data->editVal) ? $data->editVal : $data->edit)
+	
+);
 
 // Form Validation
 if($form->success())
 {
-	// Process the data
-	$dataTable->autoProcess(); // Processes automatically with the Data Table rules
+	echo "Successful Submission!";
+	
+	// Custom Form Interpretations
+	// Modify how the data you send is interpreted. (e.g. delimiters, string parsing, sanitization, ...)
+	// $data->title = ucwords($data->title);	// Capitalizes each word in the title
+	// $data->timeUpdated = time();				// Sets the current time field (not provided by the form itself)
+	
+	// This inserts (or edits) the appropriate row in the database
+	$form->process();
+	
+	// After Process Handling
+	// header("Location: /complete.php"); exit;
 }
 
 // Display the Table
@@ -42,8 +88,12 @@ $dataTable->view();
 // Display Table Pagination
 $dataTable->pagination();
 
+// Add Custom Inputs to the Form
+$form->text("extra_field", "Extra Field");
+
 // Build the form using the Data Table automation
 $dataTable->autoForm($form);
+
 
 ****** Methods Available ******
 * __construct($database, $table)
@@ -80,6 +130,8 @@ class DataTable {
 	
 	public $database = "";
 	public $table = "";
+	public $tableColumn = "id";
+	public $tableValue = null;
 	
 	public $currentPage = 1;
 	public $maxPages = 1;
@@ -90,8 +142,8 @@ class DataTable {
 	
 	public $columnString = "*";
 	public $columnArray = array();
-	
-	public $deleteColumn = "id";
+	public $allowDelete = true;
+	public $allowEdit = true;
 	
 	public $schemaPrep = array();
 	public $schema = array();
@@ -100,15 +152,19 @@ class DataTable {
 /****** Constructor ******/
 	function __construct
 	(
-		$database		/* <str> The database of the SQL table that you're working with. */,
-		$table			/* <str> The name of the SQL table that you're working with. */
+		$database			/* <str> The database of the SQL table that you're working with. */,
+		$table				/* <str> The name of the SQL table that you're working with. */,
+		$keyColumn			/* <str> The name of the column that is used as the unique identifier. */,
+		$uniqueID = null	/* <int> or <str> The value of the unique ID to determine the row to modify, if applicable. */
 	)
 	
-	// $dataTable = new DataTable("myDatabase", "myTable");
+	// $dataTable = new DataTable("myDatabase", "users", "id", $data->edit);
 	{
 		// Prepare Values
 		$this->database = Sanitize::variable($database);
-		$this->table = Sanitize::variable($table);
+		$this->table = Sanitize::variable($table, "-");
+		$this->tableColumn = Sanitize::variable($keyColumn, "-");
+		$this->tableValue = $uniqueID;
 		
 		// Get URL Data
 		$getPath = parse_url($_SERVER['REQUEST_URI']);
@@ -140,7 +196,7 @@ class DataTable {
 							/* For Arrays: Key is the column, Value is the way to interpret it in the view. */
 	)						/* RETURNS <void> */
 	
-	// $dataTable->setColumns("id", "username", "email", ["date_joined" => "fuzzyTime"]);
+	// $dataTable->setColumns("id", "username", "email", array("date_joined" => "fuzzyTime"));
 	{
 		// Prepare Variables
 		$args = func_get_args();
@@ -431,7 +487,13 @@ class DataTable {
 		{
 			$html .= '
 			<div class="row">
-				<div class="cell">' . ($this->deleteColumn != "" ? '<a href="' . $this->urlPath . $this->params(['delete' => $row['id']]) . '"><input type="button" name="blah" value="X" style="background-color:#aa4444;color:white;" /></a>' : '&nbsp;') . '</div>';
+				<div class="cell">
+				
+					' . ($this->allowDelete == true ? '<input type="button" name="delete_' . $row['id'] . '" value="X" style="background-color:#aa4444;color:white;" onclick=\'deleteRow("' . $this->urlPath . $this->params(array('delete' => $row['id'])) . '", ' . $row['id'] . '); return false;\' />' : '') . '
+					
+					' . ($this->allowEdit == true ? '<input type="button" name="edit_' . $row['id'] . '" value="E" style="background-color:#44aa44;color:white;" onclick=\'editRow("' . $this->urlPath . $this->params(array('edit' => $row['id'])) . '"); return false;\' />' : '') . '
+					
+				</div>';
 				
 				foreach($this->schema as $column)
 				{
@@ -462,7 +524,26 @@ class DataTable {
 		}
 		
 		$html .= '
-		</div>';
+		</div>
+		
+		<script type="text/javascript">
+		
+		function deleteRow(path, id)
+		{
+			var confReturn = confirm("Are you sure you want to delete the row #" + id);
+			
+			if(confReturn == true)
+			{
+				window.location.href = path;
+			}
+		}
+		
+		function editRow(path)
+		{
+			window.location.href = path;
+		}
+		
+		</script>';
 		
 		echo $html;
 	}
@@ -516,7 +597,7 @@ class DataTable {
 		$html .= '
 		<div class="table-menu">';
 		
-		$html .= ($this->currentPage > 1 ? ' <a href="' . $this->urlPath . $this->params(['page' => $this->currentPage - 1]) . '">' : '<span>') . 'Previous' . ($this->currentPage > 1 ? '</a>' : '</span>');
+		$html .= ($this->currentPage > 1 ? ' <a href="' . $this->urlPath . $this->params(array('page' => $this->currentPage - 1)) . '">' : '<span>') . 'Previous' . ($this->currentPage > 1 ? '</a>' : '</span>');
 		
 		for($i = $minPage;$i <= $maxPage;$i++)
 		{
@@ -528,11 +609,11 @@ class DataTable {
 			else
 			{
 				$html .= '
-				<a href="' . $this->urlPath . $this->params(['page' => $i]) . '">' . $i . '</a>';
+				<a href="' . $this->urlPath . $this->params(array('page' => $i)) . '">' . $i . '</a>';
 			}
 		}
 		
-		$html .= ($this->currentPage < $maxPages ? ' <a href="' . $this->urlPath . $this->params(['page' => $this->currentPage + 1]) . '">' : ' <span>') . 'Next' . ($this->currentPage < $maxPages ? '</a>' : '</span>');
+		$html .= ($this->currentPage < $maxPages ? ' <a href="' . $this->urlPath . $this->params(array('page' => $this->currentPage + 1)) . '">' : ' <span>') . 'Next' . ($this->currentPage < $maxPages ? '</a>' : '</span>');
 		
 		$html .= '
 		</div>';
@@ -597,41 +678,5 @@ class DataTable {
 		
 		$form->submit("Submit", "submit");
 		$form->generate($this->urlPath . $this->params());
-	}
-	
-	
-/****** Process Form Submission Automatically (based on the DataTable rules) ******/
-	public function autoProcess (
-	)				/* RETURNS <void>, but outputs HTML of the table. */
-	
-	// $dataTable->autoProcess();
-	{
-		// Prepare Values
-		global $data;
-		
-		$valueSQL_part1 = "";
-		$valueSQL_part2 = "";
-		
-		$valueArray = array();
-		
-		// Identify all of the data posted, using the DataTable scheme as a filter
-		foreach($this->schema as $value)
-		{
-			$column = $value['column_name'];
-			
-			if(isset($data->$column))
-			{
-				$valueSQL_part1 .= ($valueSQL_part1 != "" ? ", " : "") . "`" . $column . "`";
-				$valueSQL_part2 .= ($valueSQL_part2 != "" ? ", " : "") . "?";
-				
-				array_push($valueArray, $data->$column);
-			}
-		}
-		
-		// Insert the Data into the Database
-		if($valueArray != array())
-		{
-			Database::query("INSERT INTO `" . $this->table . "` (" . $valueSQL_part1 . ") VALUES (" . $valueSQL_part2 . ")", $valueArray);
-		}
 	}
 }

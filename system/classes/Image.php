@@ -12,22 +12,62 @@ Image::changeHue($image, 45);
 Image::display($image);
 
 ****** Methods Available ******
+* $image = new Image($filePath)						// Creates an image resource from an image path.
+* 
 * Image::upload($_filesData, $imageSaveTo, $require = array());		// Uploads an image to $imageSaveTo
 * Image::uploadFromURL($url, $imageSaveTo, $require = array());		// Uploads an image to $imageSaveTo
 * 
-* Image::create($image)							// Creates an image object.
-* Image::crop($image, $x, y, $toX, $toY)		// Crops an image based on the dimensions provided
-* Image::trimTransparency(&$image)				// Crops off any transparent edges
-* Image::rescale($image, $newWidth, $newHeight, $x, $y, $x2, $y2);		// Rescales the image.
-* Image::display(&$image)						// Displays the image directly to the screen
-* Image::swapColors(&$image, $swap)				// Switch colors on an image
-* Image::changeHue(&$image, $angle)				// Changes the hue of the image up to 360 degrees
-* Image::hexToRGB($hexValue)					// Changes a hex color value to RGB (array)
-* Image::rgbToHex($red, $green, $blue)			// Changes an rgb color value to hex.
-* Image::getColors(&$image)						// 
+* Image::create($image)								// Creates an image object.
+* Image::paste($image, "/path/to/image.png");		// Pastes a layer on top.
+* Image::layer($image, "/path/to/image.png");		// Places another layer on top of the image.
+* 
+* Image::crop($image, $x, y, $toX, $toY)			// Crops an image based on the dimensions provided
+* Image::autoCrop($image, $width, $height)			// Automatically crops & centers an image
+* Image::thumb($image, $width = 100, $height = 100)	// Generates a thumbnail from an image.
+* Image::trimTransparency(&$image)					// Crops off any transparent edges
+* Image::scale($image, $newWidth, $newHeight, $x, $y, $x2, $y2);		// Scales the image.
+* 
+* Image::blend($image, "/path/to/image.png");		// Uses the blend effect on an image.
+* Image::overlay($image, "/path/to/image.png");		// Uses the overlay effect on an image.
+* Image::colorize($image, 150, 20, 20, 0);			// Uses the colorize effect on an image.
+* Image::pixelate($image, 3);						// Uses the pixelate effect on an image.
+* Image::multiply($image, "/path/to/image.png");	// Uses the multiply effect on an image.
+* 
+* Image::swapColors(&$image, $swap = array())		// Switch colors from one to another on an image.
+* Image::changeHue(&$image, $angle)					// Changes the hue of the image up to 360 degrees
+* Image::hexToRGB($hexValue)						// Changes a hex color value to RGB (array)
+* Image::rgbToHex($red, $green, $blue)				// Changes an rgb color value to hex.
+* Image::getColors(&$image)							// Retrieves a list of estimated colors from an image.
+* 
+* Image::display(&$image)							// Displays the image directly to the screen
+* Image::save()										// Saves the Image
 */
 
 abstract class Image {
+	
+	
+/****** Constructor ******
+	function __construct
+	(
+		$imagePath		/* <str> The path of the image you'd like to create. **
+	)					/* RETURNS <object> **
+	
+	// $image = new Image("image.png");
+	{
+		// Identify Image Details
+		$info   = getimagesize($imagePath);
+		
+		$this->mime		= $info['mime'];	// mime-type, such as "image/jpeg"
+		$this->width	= $info[0];
+		$this->height	= $info[1];
+		
+		// Generate Image Object
+		switch($mime)
+		{
+			$this->resource = imagecreatefrompng($imagePath);
+		}
+	}
+	*/
 	
 	
 /****** Upload an Image ******/
@@ -256,6 +296,135 @@ abstract class Image {
 	}
 	
 	
+/****** Paste a New Layer Above (no transparency) ******/
+	public static function paste
+	(
+		&$image				/* <image> The image you'd like to modify. */,
+		$layerPath			/* <str> A path to the image you'd like to layer on top. */,
+		$posX = 0			/* <int> X position of the layer. */,
+		$posY = 0			/* <int> Y position of the layer. */,
+		$layerX = 0			/* <int> X crop-position of layer. */,
+		$layerY = 0			/* <int> Y crop-position of layer. */,
+		$layerWidth = 0		/* <int> Width of the layer. (default is actual size) */,
+		$layerHeight = 0	/* <int> Height of the layer. (default is actual size) */
+	)						/* RETURNS <true> */
+	
+	// Image::paste($image, "/path/to/image.png");
+	{
+		// Load the new layer
+		$draw = imagecreatefrompng($layerPath);
+		
+		// Check default sizes
+		if($layerWidth == 0) { $layerWidth = imagesx($draw); }
+		if($layerHeight == 0) { $layerHeight = imagesy($draw); }
+		
+		// Copy the layer to the image
+		imagecopy($image, $draw, $posX, $posY, $layerX, $layerY, $layerWidth, $layerHeight);
+	}
+	
+	
+/****** Create a New Layer ******/
+	public static function layer
+	(
+		&$image				/* <image> The image you'd like to modify. */,
+		$layerPath			/* <str> A path to the image you'd like to layer on top. */,
+		$posX = 0			/* <int> X position of the layer. */,
+		$posY = 0			/* <int> Y position of the layer. */,
+		$layerX = 0			/* <int> X crop-position of layer. */,
+		$layerY = 0			/* <int> Y crop-position of layer. */,
+		$layerWidth = 0		/* <int> Width of the layer. (default is actual size) */,
+		$layerHeight = 0	/* <int> Height of the layer. (default is actual size) */
+	)						/* RETURNS <true> */
+	
+	// Image::layer($image, "/path/to/image.png");
+	{
+		// Load the new layer
+		$draw = imagecreatefrompng($layerPath);
+		
+		// Check default sizes
+		if($layerWidth == 0) { $layerWidth = imagesx($draw); }
+		if($layerHeight == 0) { $layerHeight = imagesy($draw); }
+		
+		// Cycle through every pixel in the image
+		for($x = 0;$x < $layerWidth;$x++)
+		{
+			for($y = 0;$y < $layerHeight;$y++)
+			{
+				// Retrieve the color at the current location
+				$rgb_under = imagecolorat($image, $x, $y);
+				$rgb = imagecolorat($draw, $x, $y);
+				
+				// Translate the colors to RGB values
+				$alpha = ($rgb & 0x7F000000) >> 24;
+				
+				if($alpha != 127)
+				{
+					$r		= ($rgb >> 16) & 0xFF;
+					$g		= ($rgb >> 8) & 0xFF;
+					$b		= $rgb & 0xFF;
+					
+					imagesetpixel($image, $x + $posX, $y + $posY, imagecolorallocatealpha($draw, $r, $g, $b, $alpha));
+				}
+			}
+		}
+	}
+	
+	
+/****** Create a Shadow Layer ******/
+	public static function shadow
+	(
+		&$image				/* <image> The image you'd like to modify. */,
+		$layerPath			/* <str> A path to the image you'd like to layer on top. */,
+		$posX = 0			/* <int> X position of the layer. */,
+		$posY = 0			/* <int> Y position of the layer. */,
+		$layerX = 0			/* <int> X crop-position of layer. */,
+		$layerY = 0			/* <int> Y crop-position of layer. */,
+		$layerWidth = 0		/* <int> Width of the layer. (default is actual size) */,
+		$layerHeight = 0	/* <int> Height of the layer. (default is actual size) */
+	)						/* RETURNS <true> */
+	
+	// Image::shadow($image, "/path/to/image.png");
+	{
+		// Load the new layer
+		$draw = imagecreatefrompng($layerPath);
+		
+		// Check default sizes
+		if($layerWidth == 0) { $layerWidth = imagesx($draw); }
+		if($layerHeight == 0) { $layerHeight = imagesy($draw); }
+		
+		// Cycle through every pixel in the image
+		for($x = 0;$x < $layerWidth;$x++)
+		{
+			for($y = 0;$y < $layerHeight;$y++)
+			{
+				// Retrieve the color at the current location
+				$rgb_under = imagecolorat($image, $x, $y);
+				$rgb = imagecolorat($draw, $x, $y);
+				
+				// Translate the colors to RGB values
+				$alpha = ($rgb & 0x7F000000) >> 24;
+				$alpha2 = ($rgb_under & 0x7F000000) >> 24;
+				
+				if($alpha != 127)
+				{
+					// This section will "multiply" blend the lower layers with this shadow layer.
+					// It uses the formula: round(top pixel * bottom pixel / 255)
+					
+					$r2		= ($rgb_under >> 16) & 0xFF;
+					$g2		= ($rgb_under >> 8) & 0xFF;
+					$b2		= $rgb_under & 0xFF;
+					
+					$r		= ($rgb >> 16) & 0xFF;
+					$g		= ($rgb >> 8) & 0xFF;
+					$b		= $rgb & 0xFF;
+					
+					imagesetpixel($image, $x + $posX, $y + $posY, imagecolorallocatealpha($draw, round($r * $r2 / 255), round($g * $g2 / 255), round($b * $b2 / 255), round($alpha * $alpha / 255)));
+				}
+			}
+		}
+	}
+	
+	
 /****** Crop Image ******/
 	public static function crop
 	(
@@ -283,6 +452,91 @@ abstract class Image {
 		
 		// Clear Memory
 		unset($croppedImage);
+	}
+	
+	
+/****** Auto-Crop Image ******
+This function automatically creates a center-cropped image (of the size chosen). */
+	public static function autoCrop
+	(
+		&$image		/* <image object> The image object you want to crop. */,
+		$width		/* <int> The width of the cropped image. */,
+		$height		/* <int> The height of the cropped image. */
+	)				/* RETURNS <void> */
+	
+	// Image::autoCrop($image, $width, $height);
+	{
+		// Prepare Values
+		$imgX = 0;
+		$imgY = 0;
+		
+		// Get Current Images Width
+		$imgWidth = imagesx($image);
+		$imgHeight = imagesy($image);
+		
+		// Determine what part of the image you can shrink
+		$heightPercent = $imgHeight / $height;
+		$widthPercent = $imgWidth / $width;
+		
+		if($heightPercent > $widthPercent)
+		{
+			// This means the top and bottom needs to be cropped, since width can be maxed out.
+			
+			// Shrink clone size until $widthPercent == 1
+			$cloneHeight = $imgHeight / $widthPercent;
+			$cloneWidth = $imgWidth / $widthPercent;
+			
+			// Now get the amount of pixel space remaining to the sides
+			$extraSpace = $cloneHeight - $height;
+			
+			// Set the X position where it will cover the center.
+			$imgY += ($extraSpace / 2) * $widthPercent;
+			$imgHeight -= $extraSpace * $widthPercent;
+		}
+		else
+		{
+			// This means the left and right need to be cropped, since height can be maxed out.
+			
+			// Determine how much needs to be cropped by identifying the rescale width result, then centering.
+			
+			// Shrink clone size until $heightPercent == 1
+			// The result is what the width will be after the rescale takes effect
+			$cloneHeight = $imgHeight / $heightPercent;
+			$cloneWidth = $imgWidth / $heightPercent;
+			
+			// Now get the amount of pixel space remaining to the sides
+			$extraSpace = $cloneWidth - $width;
+			
+			// Set the X position where it will cover the center.
+			$imgX += ($extraSpace / 2) * $heightPercent;
+			$imgWidth -= $extraSpace * $heightPercent;
+		}
+		
+		// Auto-Crop the New Image
+		$croppedImage = imagecreatetruecolor($width, $height);
+		$transColor = imagecolorallocatealpha($croppedImage, 0, 0, 0, 127);
+		imagefill($croppedImage, 0, 0, $transColor);
+		imagecopyresampled($croppedImage, $image, 0, 0, $imgX, $imgY, $width, $height, $imgWidth, $imgHeight);
+		
+		// Set the new cropped image
+		$image = $croppedImage;
+		
+		// Clear Memory
+		unset($croppedImage);
+	}
+	
+	
+/****** Create a Thumbnail of an Image ******/
+	public static function thumb
+	(
+		&$image			/* <image object> The image object you want to crop. */,
+		$width = 100	/* <int> The width of the thumbnail. */,
+		$height = 100	/* <int> The height of the thumbnail. */
+	)					/* RETURNS <void> */
+	
+	// Image::thumb($image, $width = 100, $height = 100)
+	{
+		return Image::autoCrop($image, $width, $height);
 	}
 	
 	
@@ -408,36 +662,36 @@ abstract class Image {
 	}
 	
 	
-/****** Rescale Image ******/
-	public static function rescale
+/****** Scale Image ******/
+	public static function scale
 	(
 		&$image			/* <image object> The image object you want to crop. */,
 		$newWidth		/* <int> The new width of the image (scaled proportionally). */,
 		$newHeight		/* <int> The new height of the image (scaled proportionally). */,
-		$x = 0			/* <int> The upper-left X boundary for what part of your image you want to rescale. */,
-		$y = 0			/* <int> The upper-left Y boundary for what part of your image you want to rescale. */,
-		$x2 = 0			/* <int> The bottom-right X boundary to rescale. (default is max width) */,
-		$y2 = 0			/* <int> The bottom-right Y boundary to rescale. (default is max width0 */
+		$x = 0			/* <int> The upper-left X boundary for what part of your image you want to scale. */,
+		$y = 0			/* <int> The upper-left Y boundary for what part of your image you want to scale. */,
+		$x2 = 0			/* <int> The bottom-right X boundary to scale. (default is max width) */,
+		$y2 = 0			/* <int> The bottom-right Y boundary to scale. (default is max width0 */
 	)					/* RETURNS <void> */
 	
-	// Image::rescale($image, $newWidth, $newHeight, $x, $y, $x2, $y2);
+	// Image::scale($image, $newWidth, $newHeight, $x, $y, $x2, $y2);
 	{
 		// Get dimensions of the image
 		$width = ($x2 <= $x ? imagesx($image) - $x : $x2 - $x);
 		$height = ($y2 <= $x ? imagesy($image) - $y : $y2 - $y);
 		
-		// Prepare New Rescaled Image
+		// Prepare New Scaled Image
 		$imageNew = imagecreatetruecolor($newWidth, $newHeight);
 		$transColor = imagecolorallocatealpha($imageNew, 0, 0, 0, 127);
 		imagefill($imageNew, 0, 0, $transColor);
 		
-		// Rescale Image
+		// Scale Image
 		$scaledImage = imagecreatetruecolor($newWidth, $newHeight);
 		imagesavealpha($scaledImage, true);
 		imagefill($scaledImage, 0, 0, $transColor);
 		imagecopyresampled($scaledImage, $image, 0, 0, $x, $y, $newWidth, $newHeight, $width, $height);
 		
-		// Rescale the Image you're working with
+		// Scale the Image you're working with
 		$image = $scaledImage;
 		
 		// Clear Memory
@@ -500,53 +754,6 @@ abstract class Image {
 		
 		// Copy the layer to the image
 		imagecopy($image, $draw, $posX, $posY, $layerX, $layerY, $layerWidth, $layerHeight);
-	}
-	
-	
-/****** Layer a new image on top of am existing image ******/
-	public static function layer
-	(
-		&$image				/* <image> The image you'd like to modify. */,
-		$layerPath			/* <str> A path to the image you'd like to layer on top. */,
-		$posX = 0			/* <int> X position of the layer. */,
-		$posY = 0			/* <int> Y position of the layer. */,
-		$layerX = 0			/* <int> X crop-position of layer. */,
-		$layerY = 0			/* <int> Y crop-position of layer. */,
-		$layerWidth = 0		/* <int> Width of the layer. (default is actual size) */,
-		$layerHeight = 0	/* <int> Height of the layer. (default is actual size) */
-	)						/* RETURNS <true> */
-	
-	// Image::layer($image, "/path/to/image.png");
-	{
-		// Load the new layer
-		$draw = imagecreatefrompng($layerPath);
-		
-		// Check default sizes
-		if($layerWidth == 0) { $layerWidth = imagesx($draw); }
-		if($layerHeight == 0) { $layerHeight = imagesy($draw); }
-		
-		// Copy the layer to the image
-		imagecopy($image, $draw, $posX, $posY, $layerX, $layerY, $layerWidth, $layerHeight);
-	}
-	
-	
-/****** Display Image ******/
-	public static function display
-	(
-		&$image			/* <image> The image you'd like to output directly to the browser. */
-	)					/* RETURNS <true>  */
-	
-	// Image::display($image);
-	{
-		header("Content-Type: image/png");
-		
-		imagealphablending($image, true);
-		imagesavealpha($image, true);
-		
-		imagepng($image);
-		imagedestroy($image);
-		
-		return true;
 	}
 	
 	
@@ -831,5 +1038,37 @@ abstract class Image {
 		
 		return array($r, $g, $B);
 	}
-
+	
+	
+/****** Display Image ******/
+	public static function display
+	(
+		&$image			/* <image> The image you'd like to output directly to the browser. */
+	)					/* RETURNS <true>  */
+	
+	// Image::display($image);
+	{
+		header("Content-Type: image/png");
+		
+		imagealphablending($image, true);
+		imagesavealpha($image, true);
+		
+		imagepng($image);
+		imagedestroy($image);
+		
+		return true;
+	}
+	
+	
+/****** Prepare a New Image ******/
+	public static function save
+	(
+		$image			/* <object> The image object to save. */,
+		$file			/* <str> The height of the image you'd like to create. */
+	)					/* RETURNS <void> */
+	
+	// Image::save($image, $file);
+	{
+		return imagejpeg($image, $file);
+	}
 }

@@ -7,6 +7,7 @@
 ****** Methods Available ******
 * Me::initialize();					// Initializes the user for the page view.
 * Me::id()							// Loads your personal ID.
+* Me::loggedIn()					// Returns TRUE if you are logged in.
 * Me::login($userID)				// Login as a particular user (sets session variable).
 * Me::load($userID)					// Loads your personal user data.
 * Me::logout()						// Logs the current user out.
@@ -59,6 +60,21 @@ abstract class Me {
 		}
 		
 		return 0;
+	}
+	
+	
+/****** Check if Logged In ******/
+	public static function loggedIn (
+	)				/* RETURNS <bool> : TRUE if logged in. */
+	
+	// if(Me::loggedIn()) { echo "You are logged in!"; }
+	{
+		if(isset($_SESSION[USER_SESSION]['id']))
+		{
+			return true;
+		}
+		
+		return false;
 	}
 	
 	

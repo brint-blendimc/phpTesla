@@ -6,10 +6,7 @@
 ****** Methods Available ******
 * User::toID($user)									// Translates ID, username, or email to ID (optimized)
 * User::getData($user, $columns = "*")				// Retrieves & verifies user info based on ID, username, or email.
-* User::exists($user)								// Checks if the user exists (by ID, username, or email).
 * User::register($username, $password, $email = "")	// Registers a user (email can be optional).
-* User::setPassword($username, $password)			// Sets a new password for the user.
-* User::setEmail($username, $email)					// Sets the user's email.
 * 
 ****** Database ******
 
@@ -20,7 +17,7 @@ CREATE TABLE IF NOT EXISTS `users`
 	`role`					varchar(12)					NOT NULL	DEFAULT '',
 	`username`				varchar(22)					NOT NULL	DEFAULT '',
 	`email`					varchar(48)					NOT NULL	DEFAULT '',
-	`password`				varchar(60)					NOT NULL	DEFAULT '',
+	`password`				varchar(90)					NOT NULL	DEFAULT '',
 	
 	`is_confirmed`			tinyint(1)		unsigned	NOT NULL	DEFAULT '0',
 	
@@ -91,26 +88,6 @@ If you need to validate the user ID (confirm it exists), you should use User::ge
 	}
 	
 	
-/****** Check if a User Exists ******/
-	public static function exists
-	(
-		$user		/* <str> The ID, username, or email of the account to check exists. */
-	)				/* RETURNS <bool> : TRUE if the user exists, FALSE if not. */
-	
-	// User::exists("Joe")
-	// User::exists("joe@unifaction.com")
-	{
-		$getUser = self::getData($user, "id");
-		
-		if(isset($getUser['id']))
-		{
-			return true;
-		}
-		
-		return false;
-	}
-	
-	
 /****** Register a User ******/
 	public static function register
 	(
@@ -125,47 +102,5 @@ If you need to validate the user ID (confirm it exists), you should use User::ge
 		$hash = Security::setPassword($password, $dateJoined);
 		
 		return Database::query("INSERT INTO `users` (`username`, `role`, `email`, `password`, `date_joined`) VALUES (?, ?, ?, ?, ?)", array($username, "user", $email, $hash, $dateJoined));
-	}
-	
-	
-/****** Set User Password ******/
-	public static function setPassword
-	(
-		$user			/* <str> The ID, username, or email of the account. */,
-		$password		/* <str> The password to set (will overwrite the existing password). */
-	)					/* RETURNS <bool> : TRUE if password was set, FALSE if something went wrong. */
-	
-	// User::setPassword("Joe", "myNewPassword")
-	{
-		$userData = self::getData($user, "id, date_joined");
-		
-		if(isset($userData['id']))
-		{
-			$hash = Security::setPassword($password, $userData['date_joined']);
-			
-			return Database::query("UPDATE `users` SET `password`=? WHERE id=? LIMIT 1", array($hash, $userData['id']));
-		}
-		
-		return false;
-	}
-	
-	
-/****** Set User Email ******/
-	public static function setEmail
-	(
-		$user			/* <str> The ID, username, or email of the account. */,
-		$email			/* <str> The email to set (will overwrite the existing email). */
-	)					/* RETURNS <bool> : TRUE if email was set, FALSE if something went wrong. */
-	
-	// User::setEmail("Joe", "myNewEmail@gmail.com")
-	{
-		$userData = self::getData($user, "id");
-		
-		if(isset($userData['id']))
-		{
-			return Database::query("UPDATE `users` SET `email`=? WHERE id=? LIMIT 1", array($email, $userData['id']));
-		}
-		
-		return false;
 	}
 }
